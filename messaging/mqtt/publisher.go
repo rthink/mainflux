@@ -1,12 +1,12 @@
 // Copyright (c) Mainflux
 // SPDX-License-Identifier: Apache-2.0
 
-package nats
+package mqtt
 
 import (
+	broker "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gogo/protobuf/proto"
 	"github.com/mainflux/mainflux/messaging"
-	broker "github.com/nats-io/nats.go"
 )
 
 var _ messaging.Publisher = (*Publisher)(nil)

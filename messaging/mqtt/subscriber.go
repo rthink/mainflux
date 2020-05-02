@@ -1,7 +1,7 @@
 // Copyright (c) Mainflux
 // SPDX-License-Identifier: Apache-2.0
 
-package nats
+package mqtt
 
 import (
 	"errors"
@@ -10,9 +10,9 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 
+	broker "github.com/eclipse/paho.mqtt.golang"
 	log "github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mainflux/messaging"
-	broker "github.com/nats-io/nats.go"
 )
 
 var (
@@ -53,7 +53,7 @@ func (s *Subscriber) Subscribe(topic string, queue string, handler messaging.Mes
 	if _, ok := s.subscriptions[topic]; ok {
 		return errAlreadySubscribed
 	}
-	nh := s.natsHandler(handler)
+	nh := s.mqttHandler(handler)
 	if queue != "" {
 		sub, err := s.conn.QueueSubscribe(topic, queue, nh)
 		if err != nil {
@@ -77,6 +77,8 @@ func (s *Subscriber) Unsubscribe(topic string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	topic = fmt.Sprintf("%s.%s", chansPrefix, topic)
+
 	sub, ok := s.subscriptions[topic]
 	if !ok {
 		return errNotSubscribed
@@ -90,7 +92,7 @@ func (s *Subscriber) Unsubscribe(topic string) error {
 	return nil
 }
 
-func (s *Subscriber) natsHandler(h messaging.MessageHandler) broker.MsgHandler {
+func (s *Subscriber) mqttHandler(h messaging.MessageHandler) broker.MsgHandler {
 	return func(m *broker.Msg) {
 		var msg messaging.Message
 		if err := proto.Unmarshal(m.Data, &msg); err != nil {

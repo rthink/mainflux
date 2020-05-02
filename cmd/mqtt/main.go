@@ -16,6 +16,7 @@ import (
 	"github.com/mainflux/mainflux"
 	"github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mainflux/messaging"
+	messagingMQTT "github.com/mainflux/mainflux/messaging/mqtt"
 	"github.com/mainflux/mainflux/messaging/nats"
 	mqtt "github.com/mainflux/mainflux/mqtt"
 	mr "github.com/mainflux/mainflux/mqtt/redis"
@@ -155,15 +156,17 @@ func main() {
 	defer mqttClient.Close(natsConn)
 
 	to := messagingMQTT.NewPublisher(mqttClient)
-	go mqtt.Relay(from, to, logger, tracer)
 
-	errs := make(chan error, 2)
+	errs := make(chan error, 3)
 
 	logger.Info(fmt.Sprintf("Starting MQTT proxy on port %s", cfg.mqttPort))
 	go proxyMQTT(cfg, logger, evt, errs)
 
 	logger.Info(fmt.Sprintf("Starting MQTT over WS  proxy on port %s", cfg.httpPort))
 	go proxyWS(cfg, logger, evt, errs)
+
+	logger.Info("Starting MQTT relay of other protocols")
+	go mqtt.Relay(from, to, logger, tracer)
 
 	go func() {
 		c := make(chan os.Signal, 1)
