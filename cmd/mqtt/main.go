@@ -119,7 +119,7 @@ func main() {
 	conn := connectToThings(cfg, logger)
 	defer conn.Close()
 
-	tracer, closer := initJaeger("mproxy", cfg.jaegerURL, logger)
+	tracer, closer := initJaeger("mqtt", cfg.jaegerURL, logger)
 	defer closer.Close()
 
 	thingsTracer, thingsCloser := initJaeger("things", cfg.jaegerURL, logger)
@@ -130,17 +130,32 @@ func main() {
 
 	cc := thingsapi.NewClient(conn, thingsTracer, cfg.thingsAuthTimeout)
 
-	pub, err := nats.NewPublisher(cfg.natsURL)
+	natsConn, err := nats.Connect(cfg.natsURL)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Failed to connect to NATS: %s", err))
 		os.Exit(1)
 	}
-	defer pub.Close()
+	defer nats.Close(natsConn)
+
+	pub := nats.NewPublisher(natsConn)
 
 	es := mr.NewEventStore(rc, cfg.instance)
 
 	// Event handler for MQTT hooks
 	evt := mqtt.New([]messaging.Publisher{pub}, cc, es, logger, tracer)
+
+	// Multi-protocol NATS-MQTT forwarder
+	from := nats.NewSubscriber(natsConn, logger)
+
+	mqttClient, err := messagingMQTT.Connect(cfg.mqttURL)
+	if err != nil {
+		logger.Error(fmt.Sprintf("Failed to connect to MQTT broker: %s", err))
+		os.Exit(1)
+	}
+	defer mqttClient.Close(natsConn)
+
+	to := messagingMQTT.NewPublisher(mqttClient)
+	go mqtt.Relay(from, to, logger, tracer)
 
 	errs := make(chan error, 2)
 
@@ -157,7 +172,7 @@ func main() {
 	}()
 
 	err = <-errs
-	logger.Error(fmt.Sprintf("mProxy terminated: %s", err))
+	logger.Error(fmt.Sprintf("mqtt terminated: %s", err))
 }
 
 func loadConfig() config {

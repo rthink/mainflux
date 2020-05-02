@@ -11,32 +11,20 @@ import (
 	broker "github.com/nats-io/nats.go"
 )
 
-var _ messaging.Publisher = (*publisher)(nil)
+var _ messaging.Publisher = (*Publisher)(nil)
 
-type publisher struct {
+type Publisher struct {
 	conn *broker.Conn
 }
 
-// Publisher wraps messaging Publisher exposing
-// Close() method for NATS connection.
-type Publisher interface {
-	messaging.Publisher
-	Close()
-}
-
 // NewPublisher returns NATS message Publisher.
-func NewPublisher(url string) (Publisher, error) {
-	conn, err := broker.Connect(url)
-	if err != nil {
-		return nil, err
-	}
-	ret := &pubsub{
+func NewPublisher(conn *broker.Conn) messaging.Publisher {
+	return Publisher{
 		conn: conn,
 	}
-	return ret, nil
 }
 
-func (pub *publisher) Publish(topic string, msg messaging.Message) error {
+func (pub Publisher) Publish(topic string, msg messaging.Message) error {
 	data, err := proto.Marshal(&msg)
 	if err != nil {
 		return err
@@ -51,8 +39,4 @@ func (pub *publisher) Publish(topic string, msg messaging.Message) error {
 	}
 
 	return nil
-}
-
-func (pub *publisher) Close() {
-	pub.conn.Close()
 }

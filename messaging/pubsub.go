@@ -12,7 +12,8 @@ type MessageHandler func(msg Message) error
 // Subscriber specifies message subscription API.
 type Subscriber interface {
 	// Subscribe subscribes to the message stream and consumes messages.
-	Subscribe(topic string, handler MessageHandler) error
+	// Queue is used for load-balanced subscribe (use empty strig for "not queued").
+	Subscribe(topic, queue string, handler MessageHandler) error
 
 	// Unsubscribe unsubscribes from the message stream and
 	// stops consuming messages.
