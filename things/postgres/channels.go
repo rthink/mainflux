@@ -193,20 +193,31 @@ func (cr channelRepository) RetrieveAll(ctx context.Context, owner string, offse
 	return page, nil
 }
 
-func (cr channelRepository) RetrieveByThing(ctx context.Context, owner, thing string, offset, limit uint64) (things.ChannelsPage, error) {
+func (cr channelRepository) RetrieveByThing(ctx context.Context, owner, thing string, offset, limit uint64, connected bool) (things.ChannelsPage, error) {
 	// Verify if UUID format is valid to avoid internal Postgres error
 	if _, err := uuid.FromString(thing); err != nil {
 		return things.ChannelsPage{}, things.ErrNotFound
 	}
 
-	q := `SELECT id, name, metadata
-	      FROM channels ch
-	      INNER JOIN connections co
-		  ON ch.id = co.channel_id
-		  WHERE ch.owner = :owner AND co.thing_id = :thing
-		  ORDER BY ch.id
-		  LIMIT :limit
-		  OFFSET :offset`
+	q := `SELECT id, name, metadata FROM channels ch
+    INNER JOIN connections co ON ch.id = co.channel_id
+    WHERE ch.owner = :owner AND co.thing_id = :thing
+    ORDER BY ch.id
+    LIMIT :limit
+    OFFSET :offset;`
+
+	if !connected {
+		q = `SELECT id, name, metadata
+    FROM channels ch
+    WHERE ch.owner = :owner AND ch.id NOT IN
+    (SELECT id FROM channels ch
+      INNER JOIN connections co
+      ON ch.id = co.channel_id
+      WHERE ch.owner = :owner AND co.thing_id = :thing
+      ORDER BY ch.id
+      LIMIT :limit
+      OFFSET :offset);`
+	}
 
 	params := map[string]interface{}{
 		"owner":  owner,
