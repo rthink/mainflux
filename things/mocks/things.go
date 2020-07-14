@@ -151,7 +151,7 @@ func (trm *thingRepositoryMock) RetrieveAll(_ context.Context, owner string, off
 	return page, nil
 }
 
-func (trm *thingRepositoryMock) RetrieveByChannel(_ context.Context, owner, chanID string, offset, limit uint64, connected bool) (things.Page, error) {
+func (trm *thingRepositoryMock) RetrieveByChannel(_ context.Context, owner, chanID string, offset, limit uint64, disconnected bool) (things.Page, error) {
 	trm.mu.Lock()
 	defer trm.mu.Unlock()
 
@@ -165,7 +165,7 @@ func (trm *thingRepositoryMock) RetrieveByChannel(_ context.Context, owner, chan
 	last := first + uint64(limit)
 
 	// Append connected or non connected channels
-	if connected {
+	if !disconnected {
 		for _, co := range trm.tconns[chanID] {
 			id, _ := strconv.ParseUint(co.ID, 10, 64)
 			if id >= first && id < last {
@@ -174,17 +174,17 @@ func (trm *thingRepositoryMock) RetrieveByChannel(_ context.Context, owner, chan
 		}
 	} else {
 		for _, th := range trm.things {
-			conn := false
+			connected := false
 			id, _ := strconv.ParseUint(th.ID, 10, 64)
 			if id >= first && id < last {
 				for _, co := range trm.tconns[chanID] {
 					if th.ID == co.ID {
-						conn = true
+						connected = true
 					}
 				}
 
 				// Append if not found in connections list
-				if !conn {
+				if !connected {
 					ths = append(ths, th)
 				}
 			}

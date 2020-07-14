@@ -252,7 +252,7 @@ func (tr thingRepository) RetrieveAll(ctx context.Context, owner string, offset,
 	return page, nil
 }
 
-func (tr thingRepository) RetrieveByChannel(ctx context.Context, owner, channel string, offset, limit uint64, connected bool) (things.Page, error) {
+func (tr thingRepository) RetrieveByChannel(ctx context.Context, owner, channel string, offset, limit uint64, disconnected bool) (things.Page, error) {
 	// Verify if UUID format is valid to avoid internal Postgres error
 	if _, err := uuid.FromString(channel); err != nil {
 		return things.Page{}, things.ErrNotFound
@@ -267,17 +267,17 @@ func (tr thingRepository) RetrieveByChannel(ctx context.Context, owner, channel 
   LIMIT :limit
   OFFSET :offset;`
 
-	if !connected {
+	if disconnected {
 		q = `SELECT id, name, key, metadata
     FROM things th
     WHERE th.owner = :owner AND th.id NOT IN
     (SELECT id FROM things th
       INNER JOIN connections co
       ON th.id = co.thing_id
-      WHERE th.owner = :owner AND co.channel_id = :channel
+      WHERE th.owner = :owner AND co.channel_id = :channel)
       ORDER BY th.id
       LIMIT :limit
-      OFFSET :offset);`
+      OFFSET :offset;`
 	}
 
 	params := map[string]interface{}{
@@ -309,10 +309,20 @@ func (tr thingRepository) RetrieveByChannel(ctx context.Context, owner, channel 
 	}
 
 	q = `SELECT COUNT(*)
-	     FROM things th
-	     INNER JOIN connections co
-	     ON th.id = co.thing_id
-	     WHERE th.owner = $1 AND co.channel_id = $2;`
+  FROM things th
+  INNER JOIN connections co
+  ON th.id = co.thing_id
+  WHERE th.owner = $1 AND co.channel_id = $2;`
+
+	if disconnected {
+		q = `SELECT COUNT(*)
+    FROM things th
+    WHERE th.owner = $1 AND th.id NOT IN
+    (SELECT id FROM things th
+      INNER JOIN connections co
+      ON th.id = co.thing_id
+      WHERE th.owner = $1 AND co.channel_id = $2);`
+	}
 
 	var total uint64
 	if err := tr.db.GetContext(ctx, &total, q, owner, channel); err != nil {

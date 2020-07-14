@@ -285,13 +285,13 @@ func (ts *thingsService) ListChannels(ctx context.Context, token string, offset,
 	return ts.channels.RetrieveAll(ctx, res.GetValue(), offset, limit, name, m)
 }
 
-func (ts *thingsService) ListChannelsByThing(ctx context.Context, token, thing string, offset, limit uint64, connected bool) (ChannelsPage, error) {
+func (ts *thingsService) ListChannelsByThing(ctx context.Context, token, thing string, offset, limit uint64, disconnected bool) (ChannelsPage, error) {
 	res, err := ts.auth.Identify(ctx, &mainflux.Token{Value: token})
 	if err != nil {
 		return ChannelsPage{}, ErrUnauthorizedAccess
 	}
 
-	return ts.channels.RetrieveByThing(ctx, res.GetValue(), thing, offset, limit, connected)
+	return ts.channels.RetrieveByThing(ctx, res.GetValue(), thing, offset, limit, disconnected)
 }
 
 func (ts *thingsService) RemoveChannel(ctx context.Context, token, id string) error {

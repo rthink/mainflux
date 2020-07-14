@@ -193,7 +193,7 @@ func (cr channelRepository) RetrieveAll(ctx context.Context, owner string, offse
 	return page, nil
 }
 
-func (cr channelRepository) RetrieveByThing(ctx context.Context, owner, thing string, offset, limit uint64, connected bool) (things.ChannelsPage, error) {
+func (cr channelRepository) RetrieveByThing(ctx context.Context, owner, thing string, offset, limit uint64, disconnected bool) (things.ChannelsPage, error) {
 	// Verify if UUID format is valid to avoid internal Postgres error
 	if _, err := uuid.FromString(thing); err != nil {
 		return things.ChannelsPage{}, things.ErrNotFound
@@ -206,17 +206,17 @@ func (cr channelRepository) RetrieveByThing(ctx context.Context, owner, thing st
     LIMIT :limit
     OFFSET :offset;`
 
-	if !connected {
+	if disconnected {
 		q = `SELECT id, name, metadata
     FROM channels ch
     WHERE ch.owner = :owner AND ch.id NOT IN
     (SELECT id FROM channels ch
       INNER JOIN connections co
       ON ch.id = co.channel_id
-      WHERE ch.owner = :owner AND co.thing_id = :thing
+      WHERE ch.owner = :owner AND co.thing_id = :thing)
       ORDER BY ch.id
       LIMIT :limit
-      OFFSET :offset);`
+      OFFSET :offset;`
 	}
 
 	params := map[string]interface{}{
@@ -243,11 +243,22 @@ func (cr channelRepository) RetrieveByThing(ctx context.Context, owner, thing st
 		items = append(items, ch)
 	}
 
-	q = `SELECT COUNT(*)
-	     FROM channels ch
-	     INNER JOIN connections co
-	     ON ch.id = co.channel_id
-	     WHERE ch.owner = $1 AND co.thing_id = $2`
+	q = `
+  SELECT COUNT(*)
+  FROM channels ch
+    INNER JOIN connections co
+  ON ch.id = co.channel_id
+  WHERE ch.owner = $1 AND co.thing_id = $2`
+
+	if disconnected {
+		q = `SELECT COUNT(*)
+    FROM channels ch
+    WHERE ch.owner = $1 AND ch.id NOT IN
+    (SELECT id FROM channels ch
+      INNER JOIN connections co
+      ON ch.id = co.channel_id
+      WHERE ch.owner = $1 AND co.thing_id = $2);`
+	}
 
 	var total uint64
 	if err := cr.db.GetContext(ctx, &total, q, owner, thing); err != nil {

@@ -114,7 +114,7 @@ func (crm *channelRepositoryMock) RetrieveAll(_ context.Context, owner string, o
 	return page, nil
 }
 
-func (crm *channelRepositoryMock) RetrieveByThing(_ context.Context, owner, thingID string, offset, limit uint64, connected bool) (things.ChannelsPage, error) {
+func (crm *channelRepositoryMock) RetrieveByThing(_ context.Context, owner, thingID string, offset, limit uint64, disconnected bool) (things.ChannelsPage, error) {
 	channels := make([]things.Channel, 0)
 
 	if offset < 0 || limit <= 0 {
@@ -125,7 +125,7 @@ func (crm *channelRepositoryMock) RetrieveByThing(_ context.Context, owner, thin
 	last := first + uint64(limit)
 
 	// Append connected or non connected channels
-	if connected {
+	if !disconnected {
 		for _, co := range crm.cconns[thingID] {
 			id, _ := strconv.ParseUint(co.ID, 10, 64)
 			if id >= first && id < last {
@@ -134,17 +134,17 @@ func (crm *channelRepositoryMock) RetrieveByThing(_ context.Context, owner, thin
 		}
 	} else {
 		for _, ch := range crm.channels {
-			conn := false
+			connnected := false
 			id, _ := strconv.ParseUint(ch.ID, 10, 64)
 			if id >= first && id < last {
 				for _, co := range crm.cconns[thingID] {
 					if ch.ID == co.ID {
-						conn = true
+						connnected = true
 					}
 				}
 
 				// Append if not found in connections list
-				if !conn {
+				if !connnected {
 					channels = append(channels, ch)
 				}
 			}

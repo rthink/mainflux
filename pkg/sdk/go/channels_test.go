@@ -328,13 +328,14 @@ func TestChannelsByThing(t *testing.T) {
 	}
 
 	cases := []struct {
-		desc     string
-		thing    string
-		token    string
-		offset   uint64
-		limit    uint64
-		err      error
-		response []sdk.Channel
+		desc         string
+		thing        string
+		token        string
+		offset       uint64
+		limit        uint64
+		disconnected bool
+		err          error
+		response     []sdk.Channel
 	}{
 		{
 			desc:     "get a list of channels by thing",
@@ -400,8 +401,9 @@ func TestChannelsByThing(t *testing.T) {
 			response: nil,
 		},
 	}
+
 	for _, tc := range cases {
-		page, err := mainfluxSDK.ChannelsByThing(tc.token, tc.thing, tc.offset, tc.limit)
+		page, err := mainfluxSDK.ChannelsByThing(tc.token, tc.thing, tc.offset, tc.limit, tc.disconnected)
 		assert.Equal(t, tc.err, err, fmt.Sprintf("%s: expected error %s, got %s", tc.desc, tc.err, err))
 		assert.Equal(t, tc.response, page.Channels, fmt.Sprintf("%s: expected response channel %s, got %s", tc.desc, tc.response, page.Channels))
 	}

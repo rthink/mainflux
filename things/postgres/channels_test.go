@@ -386,67 +386,62 @@ func TestRetrieveByThing(t *testing.T) {
 	require.Nil(t, err, fmt.Sprintf("got unexpected error: %s", err))
 
 	cases := map[string]struct {
-		owner     string
-		thing     string
-		offset    uint64
-		limit     uint64
-		connected bool
-		size      uint64
-		err       error
+		owner        string
+		thing        string
+		offset       uint64
+		limit        uint64
+		disconnected bool
+		size         uint64
+		err          error
 	}{
 		"retrieve all channels by thing with existing owner": {
-			owner:     email,
-			thing:     tid,
-			offset:    0,
-			limit:     n,
-			connected: true,
-			size:      n - nonConnectedChs,
+			owner:  email,
+			thing:  tid,
+			offset: 0,
+			limit:  n,
+			size:   n - nonConnectedChs,
 		},
 		"retrieve subset of channels by thing with existing owner": {
-			owner:     email,
-			thing:     tid,
-			offset:    n / 2,
-			limit:     n,
-			connected: true,
-			size:      (n / 2) - nonConnectedChs,
+			owner:  email,
+			thing:  tid,
+			offset: n / 2,
+			limit:  n,
+			size:   (n / 2) - nonConnectedChs,
 		},
 		"retrieve channels by thing with non-existing owner": {
-			owner:     wrongValue,
-			thing:     tid,
-			offset:    n / 2,
-			limit:     n,
-			connected: true,
-			size:      0,
+			owner:  wrongValue,
+			thing:  tid,
+			offset: n / 2,
+			limit:  n,
+			size:   0,
 		},
 		"retrieve channels by non-existent thing": {
-			owner:     email,
-			thing:     nonexistentThingID,
-			offset:    0,
-			limit:     n,
-			connected: true,
-			size:      0,
+			owner:  email,
+			thing:  nonexistentThingID,
+			offset: 0,
+			limit:  n,
+			size:   0,
 		},
 		"retrieve channels with malformed UUID": {
-			owner:     email,
-			thing:     wrongValue,
-			offset:    0,
-			limit:     n,
-			connected: true,
-			size:      0,
-			err:       things.ErrNotFound,
+			owner:  email,
+			thing:  wrongValue,
+			offset: 0,
+			limit:  n,
+			size:   0,
+			err:    things.ErrNotFound,
 		},
 		"retrieve all non connected channels by thing with existing owner": {
-			owner:     email,
-			thing:     tid,
-			offset:    0,
-			limit:     n,
-			connected: false,
-			size:      nonConnectedChs,
+			owner:        email,
+			thing:        tid,
+			offset:       0,
+			limit:        n,
+			disconnected: true,
+			size:         nonConnectedChs,
 		},
 	}
 
 	for desc, tc := range cases {
-		page, err := chanRepo.RetrieveByThing(context.Background(), tc.owner, tc.thing, tc.offset, tc.limit, tc.connected)
+		page, err := chanRepo.RetrieveByThing(context.Background(), tc.owner, tc.thing, tc.offset, tc.limit, tc.disconnected)
 		size := uint64(len(page.Channels))
 		assert.Equal(t, tc.size, size, fmt.Sprintf("%s: expected size %d got %d\n", desc, tc.size, size))
 		assert.Equal(t, tc.err, err, fmt.Sprintf("%s: expected no error got %d\n", desc, err))

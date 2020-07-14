@@ -64,7 +64,7 @@ func (s *mockSDK) Things(token string, offset, limit uint64, name string) (mfSDK
 
 // ThingsByChannel returns page of things that are connected to specified
 // channel.
-func (s *mockSDK) ThingsByChannel(token, chanID string, offset, limit uint64) (mfSDK.ThingsPage, error) {
+func (s *mockSDK) ThingsByChannel(token, chanID string, offset, limit uint64, disconnected bool) (mfSDK.ThingsPage, error) {
 	panic("ThingsByChannel not implemented")
 }
 
@@ -90,7 +90,7 @@ func (s *mockSDK) Channels(token string, offset, limit uint64, name string) (mfS
 
 // ChannelsByThing returns page of channels that are connected to specified
 // thing.
-func (s *mockSDK) ChannelsByThing(token, thingID string, offset, limit uint64) (mfSDK.ChannelsPage, error) {
+func (s *mockSDK) ChannelsByThing(token, thingID string, offset, limit uint64, disconnected bool) (mfSDK.ChannelsPage, error) {
 	panic("ChannelsByThing not implemented")
 }
 

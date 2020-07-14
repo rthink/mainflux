@@ -27,7 +27,7 @@ const (
 	limitKey    = "limit"
 	nameKey     = "name"
 	metadataKey = "metadata"
-	connKey     = "connected"
+	disconKey   = "disconnected"
 
 	defOffset = 0
 	defLimit  = 10
@@ -331,17 +331,17 @@ func decodeListByConnection(_ context.Context, r *http.Request) (interface{}, er
 		return nil, err
 	}
 
-	c, err := readBoolQuery(r, connKey)
+	d, err := readBoolQuery(r, disconKey)
 	if err != nil {
 		return nil, err
 	}
 
 	req := listByConnectionReq{
-		token:     r.Header.Get("Authorization"),
-		id:        bone.GetValue(r, "id"),
-		connected: c,
-		offset:    o,
-		limit:     l,
+		token:  r.Header.Get("Authorization"),
+		id:     bone.GetValue(r, "id"),
+		disconnected: d,
+		offset: o,
+		limit:  l,
 	}
 
 	return req, nil
@@ -476,16 +476,16 @@ func readMetadataQuery(r *http.Request, key string) (map[string]interface{}, err
 func readBoolQuery(r *http.Request, key string) (bool, error) {
 	vals := bone.GetQuery(r, key)
 	if len(vals) > 1 {
-		return true, errInvalidQueryParams
+		return false, errInvalidQueryParams
 	}
 
 	if len(vals) == 0 {
-		return true, nil
+		return false, nil
 	}
 
 	b, err := strconv.ParseBool(vals[0])
 	if err != nil {
-		return true, errInvalidQueryParams
+		return false, errInvalidQueryParams
 	}
 
 	return b, nil

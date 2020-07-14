@@ -349,7 +349,6 @@ func TestThingsByChannel(t *testing.T) {
 		MsgContentType:    contentType,
 		TLSVerification:   false,
 	}
-	var things []sdk.Thing
 
 	mainfluxSDK := sdk.NewSDK(sdkConf)
 
@@ -357,9 +356,11 @@ func TestThingsByChannel(t *testing.T) {
 	cid, err := mainfluxSDK.CreateChannel(ch, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
-	tIDs := []string{}
-
-	for i := 1; i < 101; i++ {
+	var n = 10
+	var thsNonConn = 2
+	var things []sdk.Thing
+	var tIDs []string
+	for i := 1; i < n+1; i++ {
 		th := sdk.Thing{Name: "test_device", Metadata: metadata}
 		tid, err := mainfluxSDK.CreateThing(th, token)
 		require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
@@ -371,22 +372,23 @@ func TestThingsByChannel(t *testing.T) {
 
 	conIDs := sdk.ConnectionIDs{
 		ChannelIDs: []string{cid},
-		ThingIDs:   tIDs,
+		ThingIDs:   tIDs[0:(n - 1 - thsNonConn)],
 	}
 	err = mainfluxSDK.Connect(conIDs, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
 	cases := []struct {
-		desc     string
-		channel  string
-		token    string
-		offset   uint64
-		limit    uint64
-		err      error
-		response []sdk.Thing
+		desc         string
+		channel      string
+		token        string
+		offset       uint64
+		limit        uint64
+		disconnected bool
+		err          error
+		response     []sdk.Thing
 	}{
 		{
-			desc:     "get a list of things by channel",
+			desc:     "get a list of things connected to a channel",
 			channel:  cid,
 			token:    token,
 			offset:   0,
@@ -440,17 +442,18 @@ func TestThingsByChannel(t *testing.T) {
 			response: []sdk.Thing{},
 		},
 		{
-			desc:     "get a list of things by channel with invalid args (zero limit) and invalid token",
-			channel:  cid,
-			token:    wrongValue,
-			offset:   0,
-			limit:    0,
-			err:      createError(sdk.ErrFailedFetch, http.StatusBadRequest),
-			response: nil,
+			desc:         "get a list of things by channel with invalid args (zero limit) and invalid token",
+			channel:      cid,
+			token:        wrongValue,
+			offset:       0,
+			limit:        0,
+			disconnected: true,
+			err:          createError(sdk.ErrFailedFetch, http.StatusBadRequest),
+			response:     nil,
 		},
 	}
 	for _, tc := range cases {
-		page, err := mainfluxSDK.ThingsByChannel(tc.token, tc.channel, tc.offset, tc.limit)
+		page, err := mainfluxSDK.ThingsByChannel(tc.token, tc.channel, tc.offset, tc.limit, tc.disconnected)
 		assert.Equal(t, tc.err, err, fmt.Sprintf("%s: expected error %s, got %s", tc.desc, tc.err, err))
 		assert.Equal(t, tc.response, page.Things, fmt.Sprintf("%s: expected response channel %s, got %s", tc.desc, tc.response, page.Things))
 	}

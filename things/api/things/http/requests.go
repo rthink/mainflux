@@ -203,11 +203,11 @@ func (req *listResourcesReq) validate() error {
 }
 
 type listByConnectionReq struct {
-	token     string
-	id        string
-	offset    uint64
-	limit     uint64
-	connected bool
+	token  string
+	id     string
+	offset uint64
+	limit  uint64
+	disconnected bool
 }
 
 func (req listByConnectionReq) validate() error {

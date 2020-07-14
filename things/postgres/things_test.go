@@ -559,67 +559,62 @@ func TestMultiThingRetrievalByChannel(t *testing.T) {
 	require.Nil(t, err, fmt.Sprintf("got unexpected error: %s", err))
 
 	cases := map[string]struct {
-		owner     string
-		channel   string
-		offset    uint64
-		limit     uint64
-		connected bool
-		size      uint64
-		err       error
+		owner   string
+		channel string
+		offset  uint64
+		limit   uint64
+		disco   bool
+		size    uint64
+		err     error
 	}{
 		"retrieve all things by channel with existing owner": {
-			owner:     email,
-			channel:   cid,
-			offset:    0,
-			limit:     n,
-			connected: true,
-			size:      n - nonConnectedThs,
+			owner:   email,
+			channel: cid,
+			offset:  0,
+			limit:   n,
+			size:    n - nonConnectedThs,
 		},
 		"retrieve subset of things by channel with existing owner": {
-			owner:     email,
-			channel:   cid,
-			offset:    n / 2,
-			limit:     n,
-			connected: true,
-			size:      (n / 2) - nonConnectedThs,
+			owner:   email,
+			channel: cid,
+			offset:  n / 2,
+			limit:   n,
+			size:    (n / 2) - nonConnectedThs,
 		},
 		"retrieve things by channel with non-existing owner": {
-			owner:     wrongValue,
-			channel:   cid,
-			offset:    0,
-			limit:     n,
-			connected: true,
-			size:      0,
+			owner:   wrongValue,
+			channel: cid,
+			offset:  0,
+			limit:   n,
+			size:    0,
 		},
 		"retrieve things by non-existing channel": {
-			owner:     email,
-			channel:   nonexistentChanID,
-			offset:    0,
-			limit:     n,
-			connected: true,
-			size:      0,
+			owner:   email,
+			channel: nonexistentChanID,
+			offset:  0,
+			limit:   n,
+			size:    0,
 		},
 		"retrieve things with malformed UUID": {
-			owner:     email,
-			channel:   wrongValue,
-			offset:    0,
-			limit:     n,
-			connected: true,
-			size:      0,
-			err:       things.ErrNotFound,
+			owner:   email,
+			channel: wrongValue,
+			offset:  0,
+			limit:   n,
+			size:    0,
+			err:     things.ErrNotFound,
 		},
 		"retrieve all non connected things by channel with existing owner": {
-			owner:     email,
-			channel:   cid,
-			offset:    0,
-			limit:     n,
-			connected: false,
-			size:      nonConnectedThs,
+			owner:   email,
+			channel: cid,
+			offset:  0,
+			limit:   n,
+			disco:   true,
+			size:    nonConnectedThs,
 		},
 	}
 
 	for desc, tc := range cases {
-		page, err := thingRepo.RetrieveByChannel(context.Background(), tc.owner, tc.channel, tc.offset, tc.limit, tc.connected)
+		page, err := thingRepo.RetrieveByChannel(context.Background(), tc.owner, tc.channel, tc.offset, tc.limit, tc.disco)
 		size := uint64(len(page.Things))
 		assert.Equal(t, tc.size, size, fmt.Sprintf("%s: expected size %d got %d\n", desc, tc.size, size))
 		assert.True(t, errors.Contains(err, tc.err), fmt.Sprintf("%s: expected no error got %d\n", desc, err))
