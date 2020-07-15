@@ -42,7 +42,7 @@ type ChannelRepository interface {
 	RetrieveAll(context.Context, string, uint64, uint64, string, Metadata) (ChannelsPage, error)
 
 	// RetrieveByThing retrieves the subset of channels owned by the specified
-	// user and have specified thing connected or non-connected to them.
+	// user and have specified thing connected or disconnected to them.
 	RetrieveByThing(context.Context, string, string, uint64, uint64, bool) (ChannelsPage, error)
 
 	// Remove removes the channel having the provided identifier, that is owned
