@@ -307,24 +307,36 @@ func TestChannelsByThing(t *testing.T) {
 		MsgContentType:    contentType,
 		TLSVerification:   false,
 	}
-	var channels []sdk.Channel
 	mainfluxSDK := sdk.NewSDK(sdkConf)
 
 	th := sdk.Thing{Name: "test_device"}
 	tid, err := mainfluxSDK.CreateThing(th, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
-	for i := 1; i < 101; i++ {
-		ch := sdk.Channel{ID: strconv.Itoa(i), Name: "test"}
+	var n = 100
+	var chsDiscoNum = 1
+	var channels []sdk.Channel
+	for i := 1; i < n+1; i++ {
+		ch := sdk.Channel{
+			ID:   strconv.Itoa(i),
+			Name: "test",
+		}
 		cid, err := mainfluxSDK.CreateChannel(ch, token)
 		require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
+
+		channels = append(channels, ch)
+
+		// Don't connect last Channel
+		if i == n+1-chsDiscoNum {
+			break
+		}
+
 		conIDs := sdk.ConnectionIDs{
 			ChannelIDs: []string{cid},
 			ThingIDs:   []string{tid},
 		}
 		err = mainfluxSDK.Connect(conIDs, token)
 		require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
-		channels = append(channels, ch)
 	}
 
 	cases := []struct {
@@ -399,6 +411,16 @@ func TestChannelsByThing(t *testing.T) {
 			limit:    0,
 			err:      createError(sdk.ErrFailedFetch, http.StatusBadRequest),
 			response: nil,
+		},
+		{
+			desc:         "get a list of disconnected channels by thing",
+			thing:        tid,
+			token:        token,
+			offset:       0,
+			limit:        100,
+			disconnected: true,
+			err:          nil,
+			response:     []sdk.Channel{channels[n-chsDiscoNum]},
 		},
 	}
 

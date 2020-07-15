@@ -164,7 +164,7 @@ func (trm *thingRepositoryMock) RetrieveByChannel(_ context.Context, owner, chan
 	first := uint64(offset) + 1
 	last := first + uint64(limit)
 
-	// Append connected or non connected channels
+	// Append connected or disconnected channels
 	if !disconnected {
 		for _, co := range trm.tconns[chanID] {
 			id, _ := strconv.ParseUint(co.ID, 10, 64)

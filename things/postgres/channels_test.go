@@ -430,7 +430,7 @@ func TestRetrieveByThing(t *testing.T) {
 			size:   0,
 			err:    things.ErrNotFound,
 		},
-		"retrieve all non connected channels by thing with existing owner": {
+		"retrieve all disconnected channels by thing with existing owner": {
 			owner:        email,
 			thing:        tid,
 			offset:       0,

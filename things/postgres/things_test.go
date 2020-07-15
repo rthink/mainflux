@@ -603,7 +603,7 @@ func TestMultiThingRetrievalByChannel(t *testing.T) {
 			size:    0,
 			err:     things.ErrNotFound,
 		},
-		"retrieve all non connected things by channel with existing owner": {
+		"retrieve all disconnected things by channel with existing owner": {
 			owner:   email,
 			channel: cid,
 			offset:  0,

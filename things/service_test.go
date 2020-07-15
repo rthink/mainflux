@@ -280,7 +280,7 @@ func TestListThingsByChannel(t *testing.T) {
 	sch := schs[0]
 
 	n := uint64(10)
-	nonConnectedThs := uint64(1)
+	thsDiscoNum := uint64(1)
 
 	for i := uint64(0); i < n; i++ {
 		sths, err := svc.CreateThings(context.Background(), token, thing)
@@ -288,7 +288,7 @@ func TestListThingsByChannel(t *testing.T) {
 		sth := sths[0]
 
 		// Don't connect last Channel
-		if i == n-nonConnectedThs {
+		if i == n-thsDiscoNum {
 			break
 		}
 
@@ -299,20 +299,20 @@ func TestListThingsByChannel(t *testing.T) {
 	time.Sleep(time.Second)
 
 	cases := map[string]struct {
-		token   string
-		channel string
-		offset  uint64
-		limit   uint64
-		disconnected  bool
-		size    uint64
-		err     error
+		token        string
+		channel      string
+		offset       uint64
+		limit        uint64
+		disconnected bool
+		size         uint64
+		err          error
 	}{
 		"list all things by existing channel": {
 			token:   token,
 			channel: sch.ID,
 			offset:  0,
 			limit:   n,
-			size:    n - nonConnectedThs,
+			size:    n - thsDiscoNum,
 			err:     nil,
 		},
 		"list half of things by existing channel": {
@@ -320,13 +320,13 @@ func TestListThingsByChannel(t *testing.T) {
 			channel: sch.ID,
 			offset:  n / 2,
 			limit:   n,
-			size:    (n / 2) - nonConnectedThs,
+			size:    (n / 2) - thsDiscoNum,
 			err:     nil,
 		},
 		"list last thing by existing channel": {
 			token:   token,
 			channel: sch.ID,
-			offset:  n - 1 - nonConnectedThs,
+			offset:  n - 1 - thsDiscoNum,
 			limit:   n,
 			size:    1,
 			err:     nil,
@@ -363,14 +363,14 @@ func TestListThingsByChannel(t *testing.T) {
 			size:    0,
 			err:     nil,
 		},
-		"list all non connected things by existing channel": {
-			token:   token,
-			channel: sch.ID,
-			offset:  0,
-			limit:   n,
-			disconnected:  true,
-			size:    nonConnectedThs,
-			err:     nil,
+		"list all disconnected things by existing channel": {
+			token:        token,
+			channel:      sch.ID,
+			offset:       0,
+			limit:        n,
+			disconnected: true,
+			size:         thsDiscoNum,
+			err:          nil,
 		},
 	}
 
@@ -659,13 +659,13 @@ func TestListChannelsByThing(t *testing.T) {
 	time.Sleep(time.Second)
 
 	cases := map[string]struct {
-		token  string
-		thing  string
-		offset uint64
-		limit  uint64
+		token        string
+		thing        string
+		offset       uint64
+		limit        uint64
 		disconnected bool
-		size   uint64
-		err    error
+		size         uint64
+		err          error
 	}{
 		"list all channels by existing thing": {
 			token:  token,
@@ -723,14 +723,14 @@ func TestListChannelsByThing(t *testing.T) {
 			size:   0,
 			err:    nil,
 		},
-		"list all non connected channels by existing thing": {
-			token:  token,
-			thing:  sth.ID,
-			offset: 0,
-			limit:  n,
+		"list all disconnected channels by existing thing": {
+			token:        token,
+			thing:        sth.ID,
+			offset:       0,
+			limit:        n,
 			disconnected: true,
-			size:   nonConnectedChs,
-			err:    nil,
+			size:         nonConnectedChs,
+			err:          nil,
 		},
 	}
 

@@ -357,25 +357,33 @@ func TestThingsByChannel(t *testing.T) {
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
 	var n = 10
-	var thsNonConn = 2
+	var thsDiscoNum = 1
 	var things []sdk.Thing
-	var tIDs []string
 	for i := 1; i < n+1; i++ {
-		th := sdk.Thing{Name: "test_device", Metadata: metadata}
+		th := sdk.Thing{
+			ID:       strconv.Itoa(i),
+			Name:     "test_device",
+			Metadata: metadata,
+			Key:      fmt.Sprintf("%s%012d", keyPrefix, 2*i+1),
+		}
 		tid, err := mainfluxSDK.CreateThing(th, token)
 		require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
-		th.ID = tid
-		tIDs = append(tIDs, tid)
-		th.Key = fmt.Sprintf("%s%012d", keyPrefix, 2*i+1)
-		things = append(things, th)
-	}
 
-	conIDs := sdk.ConnectionIDs{
-		ChannelIDs: []string{cid},
-		ThingIDs:   tIDs[0:(n - 1 - thsNonConn)],
+		things = append(things, th)
+
+		// Don't connect last Thing
+		if i == n+1-thsDiscoNum {
+			break
+		}
+
+		// Don't connect last 2 Channels
+		conIDs := sdk.ConnectionIDs{
+			ChannelIDs: []string{cid},
+			ThingIDs:   []string{tid},
+		}
+		err = mainfluxSDK.Connect(conIDs, token)
+		require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 	}
-	err = mainfluxSDK.Connect(conIDs, token)
-	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
 	cases := []struct {
 		desc         string
@@ -442,14 +450,23 @@ func TestThingsByChannel(t *testing.T) {
 			response: []sdk.Thing{},
 		},
 		{
-			desc:         "get a list of things by channel with invalid args (zero limit) and invalid token",
+			desc:     "get a list of things by channel with invalid args (zero limit) and invalid token",
+			channel:  cid,
+			token:    wrongValue,
+			offset:   0,
+			limit:    0,
+			err:      createError(sdk.ErrFailedFetch, http.StatusBadRequest),
+			response: nil,
+		},
+		{
+			desc:         "get a list of disconnected things by channel",
 			channel:      cid,
-			token:        wrongValue,
+			token:        token,
 			offset:       0,
-			limit:        0,
+			limit:        100,
 			disconnected: true,
-			err:          createError(sdk.ErrFailedFetch, http.StatusBadRequest),
-			response:     nil,
+			err:          nil,
+			response:     []sdk.Thing{things[n-thsDiscoNum]},
 		},
 	}
 	for _, tc := range cases {
