@@ -388,7 +388,7 @@ func TestThingsByChannel(t *testing.T) {
 		response     []sdk.Thing
 	}{
 		{
-			desc:     "get a list of things connected to a channel",
+			desc:     "get a list of things by channel",
 			channel:  cid,
 			token:    token,
 			offset:   0,

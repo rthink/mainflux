@@ -54,8 +54,8 @@ type ThingRepository interface {
 	RetrieveAll(ctx context.Context, owner string, offset, limit uint64, name string, m Metadata) (Page, error)
 
 	// RetrieveByChannel retrieves the subset of things owned by the specified
-	// user and connected to specified channel.
-	RetrieveByChannel(ctx context.Context, owner, channel string, offset, limit uint64, connected bool) (Page, error)
+	// user and connected or disconnected to specified channel.
+	RetrieveByChannel(ctx context.Context, owner, channel string, offset, limit uint64, disconnected bool) (Page, error)
 
 	// Remove removes the thing having the provided identifier, that is owned
 	// by the specified user.

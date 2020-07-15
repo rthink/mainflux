@@ -243,10 +243,9 @@ func (cr channelRepository) RetrieveByThing(ctx context.Context, owner, thing st
 		items = append(items, ch)
 	}
 
-	q = `
-  SELECT COUNT(*)
+	q = `SELECT COUNT(*)
   FROM channels ch
-    INNER JOIN connections co
+  INNER JOIN connections co
   ON ch.id = co.channel_id
   WHERE ch.owner = $1 AND co.thing_id = $2`
 

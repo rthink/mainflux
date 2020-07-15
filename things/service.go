@@ -68,9 +68,9 @@ type Service interface {
 	ListThings(ctx context.Context, token string, offset, limit uint64, name string, metadata Metadata) (Page, error)
 
 	// ListThingsByChannel retrieves data about subset of things that are
-	// connected to specified channel and belong to the user identified by
+	// connected or disconnected to specified channel and belong to the user identified by
 	// the provided key.
-	ListThingsByChannel(ctx context.Context, token, channel string, offset, limit uint64, connected bool) (Page, error)
+	ListThingsByChannel(ctx context.Context, token, channel string, offset, limit uint64, disconnected bool) (Page, error)
 
 	// RemoveThing removes the thing identified with the provided ID, that
 	// belongs to the user identified by the provided key.
@@ -92,9 +92,9 @@ type Service interface {
 	ListChannels(ctx context.Context, token string, offset, limit uint64, name string, m Metadata) (ChannelsPage, error)
 
 	// ListChannelsByThing retrieves data about subset of channels that have
-	// specified thing connected to them and belong to the user identified by
+	// specified thing connected or disconnected to them and belong to the user identified by
 	// the provided key.
-	ListChannelsByThing(ctx context.Context, token, thing string, offset, limit uint64, connected bool) (ChannelsPage, error)
+	ListChannelsByThing(ctx context.Context, token, thing string, offset, limit uint64, disconnected bool) (ChannelsPage, error)
 
 	// RemoveChannel removes the thing identified by the provided ID, that
 	// belongs to the user identified by the provided key.
@@ -216,13 +216,13 @@ func (ts *thingsService) ListThings(ctx context.Context, token string, offset, l
 	return ts.things.RetrieveAll(ctx, res.GetValue(), offset, limit, name, metadata)
 }
 
-func (ts *thingsService) ListThingsByChannel(ctx context.Context, token, channel string, offset, limit uint64, connected bool) (Page, error) {
+func (ts *thingsService) ListThingsByChannel(ctx context.Context, token, channel string, offset, limit uint64, disconnected bool) (Page, error) {
 	res, err := ts.auth.Identify(ctx, &mainflux.Token{Value: token})
 	if err != nil {
 		return Page{}, errors.Wrap(ErrUnauthorizedAccess, err)
 	}
 
-	return ts.things.RetrieveByChannel(ctx, res.GetValue(), channel, offset, limit, connected)
+	return ts.things.RetrieveByChannel(ctx, res.GetValue(), channel, offset, limit, disconnected)
 }
 
 func (ts *thingsService) RemoveThing(ctx context.Context, token, id string) error {
