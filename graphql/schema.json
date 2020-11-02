@@ -1,0 +1,20 @@
+[
+  {
+    "name": "queryEdgeDevices",
+    "grammars": [
+      "{\"query\":\"{EdgeDevice{id name read{id, name, rangeLowerLimit, rangeUpperLimit, alarmLowerLimit, alarmUpperLimit, criticalLowerLimit, criticalUpperLimit, unitMeasure, nameMeasure}}}\"}"
+    ]
+  }, {
+    "name": "queryUsers",
+    "grammars": [
+      "{\"query\":\"{User{id name phone}}\"}"
+    ]
+  }, {
+    "name": "saveAlartEvent",
+    "grammars": [
+      "{\"query\":\"mutation{CreateAlarmEvent(timeStamp:{{.timeStamp}},alarmType:{{.alarmType}},description:{{.description}},id:{{.id}},status:{{.status}},triggerTimeRange:{{.triggerTimeRange}}){id}}\"}",
+      "{\"query\":\"mutation{AddEventTargetAsset(from:{id: {{.fromId}}},to:{id: {{.toId}}}){from{id} to{id}}}\"}",
+      "{\"query\":\"mutation{AddAlarmEventTriggeredBy(from:{id: {{.fromId}}},to:{id: {{toId}}}){from{id} to{id}}}\"}"
+    ]
+  }
+]
