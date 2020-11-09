@@ -1,20 +1,16 @@
 [
   {
     "name": "queryEdgeDevices",
-    "grammars": [
-      "{\"query\":\"{EdgeDevice{id name read{id, name, rangeLowerLimit, rangeUpperLimit, alarmLowerLimit, alarmUpperLimit, criticalLowerLimit, criticalUpperLimit, unitMeasure, nameMeasure}}}\"}"
-    ]
+    "grammar": "{\"query\":\"{EdgeDevice{id name read{id, name, rangeLowerLimit, rangeUpperLimit, alarmLowerLimit, alarmUpperLimit, criticalLowerLimit, criticalUpperLimit, unitMeasure, nameMeasure} asset{id name}}}\"}"
+
   }, {
     "name": "queryUsers",
-    "grammars": [
-      "{\"query\":\"{User{id name phone}}\"}"
-    ]
+    "grammar": "{\"query\":\"{User{id name phone}}\"}"
   }, {
-    "name": "saveAlartEvent",
-    "grammars": [
-      "{\"query\":\"mutation{CreateAlarmEvent(timeStamp:{{.timeStamp}},alarmType:{{.alarmType}},description:{{.description}},id:{{.id}},status:{{.status}},triggerTimeRange:{{.triggerTimeRange}}){id}}\"}",
-      "{\"query\":\"mutation{AddEventTargetAsset(from:{id: {{.fromId}}},to:{id: {{.toId}}}){from{id} to{id}}}\"}",
-      "{\"query\":\"mutation{AddAlarmEventTriggeredBy(from:{id: {{.fromId}}},to:{id: {{toId}}}){from{id} to{id}}}\"}"
-    ]
+    "name": "CreateAlarmEventForAsset",
+    "grammar": "{\"query\":\"mutation{CreateAlarmEventForAsset(alarmType:{{.alarmType}},assetID:\"{{.assetID}}\",description:\"{{.description}}\",memo:\"{{.memo}}\",measurementID:\"{{.memo}}\",triggerTimeRange:{{.triggerTimeRange}}\"}"
+  }, {
+    "name": "AddEventUpdate",
+    "grammar": "{\"query\":\"mutation{AddEventUpdate(id:\"{{.id}}\",triggerTimeRange:{{.triggerTimeRange}}\"}"
   }
 ]

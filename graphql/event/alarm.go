@@ -1,26 +1,40 @@
 package event
 
-import "github.com/mainflux/mainflux/graphql"
+import (
+	"github.com/mainflux/mainflux/graphql"
+)
 
-type AlarmEvent struct {
-	Id               string
-	TimeStamp        graphql.DateTime
+var (
+	createAlarmEventForAsset string = "CreateAlarmEventForAsset"
+	addEventUpdate           string = "AddEventUpdate"
+)
+
+type alarmEvent struct {
+	ManagedUserID    string
+	AssetID          string
+	MeasurementID    string
 	Description      string
-	TargetAsset      string
-	Status           graphql.EventStatusType
-	ResolvedBy       string
-	ResolveTimeStamp graphql.DateTime
 	Memo             string
 	AlarmType        graphql.AlarmType
-	TriggeredBy      string
-	TriggerTimeRange []graphql.DateTime
+	TriggerTimeRange []string
 }
 
-func AddAlarmEvent(params map[string]interface{}) {
-
+func AddAlarmEvent(uploadTime, assetID, measurementID, description, memo string, alarmType graphql.AlarmType) {
+	paramsMap := make(map[string]interface{})
+	paramsMap["assetID"] = assetID
+	paramsMap["measurementID"] = measurementID
+	paramsMap["description"] = description
+	paramsMap["memo"] = memo
+	paramsMap["alarmType"] = alarmType
+	paramsMap["triggerTimeRange"] = []string{uploadTime, uploadTime}
+	graphql.Mutation(createAlarmEventForAsset, paramsMap)
 }
 
-func updateAlarmEvent(params map[string]interface{}) {
-
+func UpdateAlarmEvent(id, uploadTime string) {
+	paramsMap := make(map[string]interface{})
+	paramsMap["id"] = id
+	// TODO
+	paramsMap["triggerTimeRange"]= []string{uploadTime, uploadTime}
+	graphql.Mutation(addEventUpdate, paramsMap)
 }
 

@@ -1,6 +1,7 @@
-package rule
+package alert
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/mainflux/mainflux/alert/expr"
 	"github.com/mainflux/mainflux/graphql"
@@ -8,6 +9,7 @@ import (
 	"github.com/mainflux/mainflux/logger"
 	"strconv"
 	"strings"
+	"text/template"
 )
 
 var (
@@ -17,17 +19,17 @@ var (
 )
 
 type AlertContent struct {
-	Title          string
-	TableName 	   graphql.TableName
-	Content  	   Content
-	Notice    	   map[string]Notice
-	Threshold      string
-	CurrVal        string
-	Description    string
-	NeedAlert      bool
+	Title       string
+	EventType   graphql.EventType
+	Content     Content
+	Notice      map[string]Notice
+	Threshold   string
+	CurrVal     string
+	Description string
+	NeedAlert   bool
 }
 
-func CompareWaterLevelExcept(waterLevel string, edgeDevice asset.EdgeDevice , logger logger.Logger) *AlertContent {
+func CompareWaterLevelExcept(uploadTime, waterLevel string, edgeDevice asset.EdgeDevice, logger logger.Logger) *AlertContent {
 	rule := getRule(waterLevelExcept)
 	if rule == nil {
 		logger.Warn(fmt.Sprintf("not found rule name:%s", waterLevelExcept))
@@ -50,15 +52,24 @@ func CompareWaterLevelExcept(waterLevel string, edgeDevice asset.EdgeDevice , lo
 	// 创建AlertContent并执行表达式
 	alertContent := AlertContent{}
 	alertContent.Title = rule.Title
-	alertContent.TableName = rule.TableName
+	alertContent.EventType = rule.EventType
 	alertContent.Notice = rule.Notice
 	alertContent.NeedAlert = false
 	alertContent.CurrVal = waterLevel
 	alertContent.executorExpr(*rule, exprParamsMap)
+	// 生成Description
+	paramsMap := make(map[string]interface{})
+	paramsMap["assetName"] = edgeDevice.Asset.Name
+	paramsMap["dateTime"] = uploadTime
+	paramsMap["currVal"] = alertContent.CurrVal
+	paramsMap["threshold"] = alertContent.Threshold
+	description := assemblyDesc(alertContent.Content.Description, paramsMap)
+	alertContent.Description = description
+
 	return &alertContent
 }
 
-func CompareReportTimeOut(continueReport string, edgeDevice asset.EdgeDevice , logger logger.Logger) *AlertContent {
+func CompareReportTimeOut(uploadTime, continueReport string, edgeDevice asset.EdgeDevice , logger logger.Logger) *AlertContent {
 	rule := getRule(reportTimeOut)
 	if rule == nil {
 		logger.Warn(fmt.Sprintf("not found rule name:%s", reportTimeOut))
@@ -73,15 +84,21 @@ func CompareReportTimeOut(continueReport string, edgeDevice asset.EdgeDevice , l
 	// 创建AlertContent并执行表达式
 	alertContent := AlertContent{}
 	alertContent.Title = rule.Title
-	alertContent.TableName = rule.TableName
+	alertContent.EventType = rule.EventType
 	alertContent.Notice = rule.Notice
 	alertContent.NeedAlert = false
 	alertContent.CurrVal = continueReport
 	alertContent.executorExpr(*rule, exprParamsMap)
+	// 生成Description
+	paramsMap := make(map[string]interface{})
+	paramsMap["assetName"] = edgeDevice.Asset.Name
+	paramsMap["dateTime"] = uploadTime
+	description := assemblyDesc(alertContent.Content.Description, paramsMap)
+	alertContent.Description = description
 	return &alertContent
 }
 
-func CompareWaterLevelUpExcept(upPercent string, edgeDevice asset.EdgeDevice , logger logger.Logger) *AlertContent {
+func CompareWaterLevelUpExcept(uploadTime, upPercent string, edgeDevice asset.EdgeDevice , logger logger.Logger) *AlertContent {
 	rule := getRule(waterLevelUpExcept)
 	if rule == nil {
 		logger.Warn(fmt.Sprintf("not found rule name:%s", waterLevelUpExcept))
@@ -96,15 +113,22 @@ func CompareWaterLevelUpExcept(upPercent string, edgeDevice asset.EdgeDevice , l
 	// 创建AlertContent并执行表达式
 	alertContent := AlertContent{}
 	alertContent.Title = rule.Title
-	alertContent.TableName = rule.TableName
+	alertContent.EventType = rule.EventType
 	alertContent.Notice = rule.Notice
 	alertContent.NeedAlert = false
 	alertContent.CurrVal = upPercent
 	alertContent.executorExpr(*rule, exprParamsMap)
+	// 生成Description
+	paramsMap := make(map[string]interface{})
+	paramsMap["assetName"] = edgeDevice.Asset.Name
+	paramsMap["dateTime"] = uploadTime
+	paramsMap["currVal"] = alertContent.CurrVal
+	description := assemblyDesc(alertContent.Content.Description, paramsMap)
+	alertContent.Description = description
 	return &alertContent
 }
 
-func (ac *AlertContent) executorExpr(rule rule, exprParamsMap map[string]interface{}) {
+func (ac *AlertContent) executorExpr(rule Rule, exprParamsMap map[string]interface{}) {
 	contents := rule.Contents
 	for i := 0; i < len(contents); i++ {
 		expr, e := expr.Compile(contents[i].Expr)
@@ -131,4 +155,11 @@ func convertToString(val interface{}) string {
 		return strconv.FormatInt(v,10)
 	}
 	return val.(string)
+}
+
+func assemblyDesc(desc string, paramsMap map[string]interface{}) string {
+	buf := new(bytes.Buffer)
+	tmpl, _ := template.New("desc").Parse(desc)
+	tmpl.Execute(buf, paramsMap)
+	return string(buf.Bytes()[:])
 }
