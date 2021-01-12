@@ -205,7 +205,18 @@ func TestReadAll(t *testing.T) {
 			url:    tc.url,
 			token:  tc.token,
 		}
+		//todo
+		fmt.Println("request---------")
+		fmt.Println("url : " + tc.url)
+		fmt.Println("token : " + tc.token)
+		fmt.Println("status : ", tc.status)
+		//
 		res, err := req.make()
+		//todo
+		fmt.Println("rep---------")
+		fmt.Println("StatusCode : ", res.StatusCode)
+		fmt.Println("Status : ", res.Status)
+		//
 		assert.Nil(t, err, fmt.Sprintf("%s: unexpected error %s", desc, err))
 		assert.Equal(t, tc.status, res.StatusCode, fmt.Sprintf("%s: expected %d got %d", desc, tc.status, res.StatusCode))
 	}

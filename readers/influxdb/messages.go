@@ -3,6 +3,7 @@ package influxdb
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gofrs/uuid"
 	"reflect"
 	"strconv"
 	"strings"
@@ -38,6 +39,21 @@ func New(client influxdata.Client, database string) readers.MessageRepository {
 		database,
 		client,
 	}
+}
+
+func (repo *influxRepository) GetLastMeasurement(publishers []uuid.UUID, sensorName string) (readers.MessagesPage, error) {
+	//todo
+	return readers.MessagesPage{}, nil
+}
+
+func PumpRunningSeconds(publishers []uuid.UUID, names []string, startTime string, endTime string) ([]readers.MessagesPage, error) {
+	//todo
+	return []readers.MessagesPage{}, nil
+}
+
+func GetTimeseriesByPublisher(publisher uuid.UUID, sensorName string, startTime string, endTime string, aggregationType string, interval string) (readers.MessagesPage, error) {
+	//todo
+	return readers.MessagesPage{}, nil
 }
 
 func (repo *influxRepository) ReadAll(chanID string, offset, limit uint64, query map[string]string) (readers.MessagesPage, error) {

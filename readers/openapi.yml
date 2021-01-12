@@ -37,6 +37,81 @@ paths:
           description: Missing or invalid access token provided.
         '500':
           $ref: "#/components/responses/ServiceError"
+  /messages/list/{publisher}:
+    get:
+      summary: Retrieves timeseries messages sent by things
+      description: |
+        Retrieves a list of timeseries messages. Due to performance concerns,
+        data is retrieved in subsets. The API readers must ensure that the
+        entire dataset is consumed either by making subsequent requests, or
+        by increasing the subset size of the initial request.
+      tags:
+        - messages
+      operationId: findMessagesByPublisher
+      parameters:
+        - $ref: "#/parameters/Publisher"
+        - $ref: "#/parameters/SensorName"
+        - $ref: "#/parameters/StartTime"
+        - $ref: "#/parameters/EndTime"
+        - $ref: "#/parameters/AggregationType"
+        - $ref: "#/parameters/Interval"
+      responses:
+        200:
+          #description: Data retrieved.
+          $ref: "#/components/schemas/TimeseriesData"
+        400:
+          description: Failed due to malformed query parameters.
+        403:
+          description: Missing or invalid access token provided.
+        500:
+          $ref: "#/responses/ServiceError"
+  /messages/last/{publishers}:
+    get:
+      summary: Retrieves last timeseries messages sent by things identified by a list of publishers.
+      description: |
+        Retrieves last timeseries messages sent by things identified by a list of publishers.
+        Returned timeseries data can be grouped by sensor name or subtopic.
+      tags:
+        - messages
+      operationId: getLastMeasurement
+      parameters:
+        - $ref: "#/parameters/Publishers"
+        - $ref: "#/parameters/SensorName"
+      responses:
+        200:
+          #description: Data retrieved.
+          $ref: "#/components/schemas/TimeseriesData"
+        400:
+          description: Failed due to malformed query parameters.
+        403:
+          description: Missing or invalid access token provided.
+        500:
+          $ref: "#/responses/ServiceError"
+
+  /timeseries/pumpRunningSeconds/{publishers}:
+    post:
+      summary: 获取指定泵站的开启时间
+      description: |
+        统计多个指定泵站 每个泵站在给定时间(startTime, endTime)内开启的总时间
+        返回结果:TimeseriesData
+      tags:
+        - messages
+      operationId: pumpRunningSeconds
+      parameters:
+        - $ref: "#/parameters/Publishers"
+        - $ref: "#/parameters/SensorNames"
+        - $ref: "#/parameters/StartTime"
+        - $ref: "#/parameters/EndTime"
+      responses:
+        200:
+          #description: Data retrieved.
+          $ref: "#/components/schemas/TimeseriesData"
+        400:
+          description: Failed due to malformed query parameters.
+        403:
+          description: Missing or invalid access token provided.
+        500:
+          $ref: "#/responses/ServiceError"
 
 components:
   schemas:
@@ -95,7 +170,47 @@ components:
               updateTime:
                 type: number
                 description: Time of updating measurement.
-
+    TimeseriesData:
+      type: object
+      properties:
+        messages:
+          type: array
+          minItems: 0
+          uniqueItems: true
+          items:
+            $ref: "#/definitions/TimeseriesDataArray"
+    TimeseriesDataArray:
+      type: object
+      properties:
+        publisher:
+          type: string
+          description: Publisher ID.
+        name:
+          type: string
+          description: Name of the sensor.
+        subtopic:
+          type: string
+          description: Message subtopic.
+        unit:
+          type: string
+          description: Unit of the measurement.
+        total:
+          type: integer
+          description: Total number of datapoints.
+        data:
+          type: array
+          minItems: 0
+          items:
+            $ref: "#/definitions/TimeseriesDataPoint"
+    TimeseriesDataPoint:
+      type: object
+      properties:
+        value:
+          type: number
+          description: Measured value in number.
+        time:
+          type: string
+          description: Time of measurement.
   parameters:
     Authorization:
       name: Authorization
@@ -188,8 +303,66 @@ components:
       schema:
         type: float
       required: false
+    Publishers:
+      name: publishers
+      description: A comma-separated list of publisher identifiers.
+      in: path
+      schema:
+        type: string
+      required: true
+    SensorName:
+      name: sensorName
+      description: Filter by name of the sensor.
+      in: query
+      schema:
+        type: string
+    SensorNames:
+      name: SensorNames
+      description: SensorName list
+      in: query
+      schema:
+        type: string
+    SubTopic:
+      name: subTopic
+      description: Filter by name of the subtopic.
+      in: query
+      schema:
+        type: string
+    StartTime:
+      name: startTime
+      description: The start timestamp of the requested timeframe, in UTC milliseconds.
+      in: query
+      schema:
+        type: string
+    EndTime:
+      name: endTime
+      description: The end timestamp of the requested timeframe, in UTC milliseconds.
+      in: query
+      schema:
+        type: string
+    AggregationType:
+      name: aggregationType
+      description: The aggregation type for the resulting data points.
+      in: query
+      schema:
+        type: string
+#      enum:
+#        - AVG
+#        - COUNT
+#        - MAX
+#        - MEDIAN
+#        - MIN
+#        - PERCENTILE
+#        - SUM
+    Interval:
+      name: interval
+      description: Time interval
+      in: query
+      schema:
+        type: string
 
   responses:
+
     MessagesPageRes:
       description: Data retrieved.
       content:
