@@ -13,6 +13,12 @@ type MessageRepository interface {
 	// ReadAll skips given number of messages for given channel and returns next
 	// limited number of messages.
 	ReadAll(chanID string, offset, limit uint64, query map[string]string) (MessagesPage, error)
+
+	GetLastMeasurement(chanIDs []string, query map[string]string) (MessagesPage, error)
+
+	PumpRunningSeconds(chanIDs []string, query map[string]string) (MessagesPage, error)
+
+	GetMessageByPublisher(chanID string, offset, limit uint64, aggregationType string, interval string, query map[string]string) (MessagesPage, error)
 }
 
 // Message represents any message format.

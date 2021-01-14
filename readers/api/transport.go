@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	kithttp "github.com/go-kit/kit/transport/http"
@@ -42,11 +43,30 @@ func MakeHandler(svc readers.MessageRepository, tc mainflux.ThingsServiceClient,
 	opts := []kithttp.ServerOption{
 		kithttp.ServerErrorEncoder(encodeError),
 	}
-
 	mux := bone.New()
 	mux.Get("/channels/:chanID/messages", kithttp.NewServer(
 		listMessagesEndpoint(svc),
 		decodeList,
+		encodeResponse,
+		opts...,
+	))
+
+	//向路由器注册路径和处理器handler
+	mux.Get("/messages/last/:chanIDs", kithttp.NewServer(
+		lastMeasurementEndpoint(svc), //注册自己定义的处理器handler
+		decodeLast,                   //提供解析request的方法，该方法解析原生态request 生成另一种request, 生成的request会被lastMeasurementEndpoint函数生成的handler使用到
+		encodeResponse,               //将lastMeasurementEndpoint函数生成的handler所返回的response解析成http认识的response
+		opts...,
+	))
+	mux.Post("/messages/pumpRunningSeconds/:chanIDs", kithttp.NewServer(
+		pumpRunningSecondsEndpoint(svc),
+		decodepumpRunning,
+		encodeResponse,
+		opts...,
+	))
+	mux.Get("/messages/list/:chanID", kithttp.NewServer(
+		getMessageByPublisherEndpoint(svc),
+		decodeMessageByChannal,
 		encodeResponse,
 		opts...,
 	))
@@ -57,6 +77,82 @@ func MakeHandler(svc readers.MessageRepository, tc mainflux.ThingsServiceClient,
 	return mux
 }
 
+func decodeMessageByChannal(_ context.Context, r *http.Request) (interface{}, error) {
+	chanID := bone.GetValue(r, "chanID")
+	if chanID == "" {
+		return nil, errInvalidRequest
+	}
+
+	if err := authorize(r, chanID); err != nil {
+		return nil, err
+	}
+
+	offset, err := getQuery(r, "offset", defOffset)
+	if err != nil {
+		return nil, err
+	}
+
+	limit, err := getQuery(r, "limit", defLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	query := map[string]string{}
+	if value := bone.GetQuery(r, "aggregationType"); len(value) == 1 {
+		query["aggregationType"] = value[0]
+	}
+	if value := bone.GetQuery(r, "interval"); len(value) == 1 {
+		query["interval"] = value[0]
+	}
+
+	for _, name := range queryFields {
+		if value := bone.GetQuery(r, name); len(value) == 1 {
+			query[name] = value[0]
+		}
+	}
+	if query[format] == "" {
+		query[format] = defFormat
+	}
+
+	req := listMessagesReq{
+		chanID: chanID,
+		offset: offset,
+		limit:  limit,
+		query:  query,
+	}
+
+	return req, nil
+}
+
+func decodepumpRunning(_ context.Context, r *http.Request) (interface{}, error) {
+	chanIDs := bone.GetValue(r, "chanIDs")
+	if chanIDs == "" {
+		return nil, errInvalidRequest
+	}
+	chanIDList := strings.Split(chanIDs, ",")
+	for i := range chanIDList {
+		if err := authorize(r, chanIDList[i]); err != nil {
+			return nil, err
+		}
+	}
+
+	query := map[string]string{}
+	for _, name := range queryFields {
+		if value := bone.GetQuery(r, name); len(value) == 1 {
+			query[name] = value[0]
+		}
+	}
+	if query[format] == "" {
+		query[format] = defFormat
+	}
+
+	req := pumpRunningReq{
+		chanIDs: chanIDList,
+		query:   query,
+	}
+
+	return req, nil
+}
 func decodeList(_ context.Context, r *http.Request) (interface{}, error) {
 	chanID := bone.GetValue(r, "chanID")
 	if chanID == "" {
@@ -97,6 +193,36 @@ func decodeList(_ context.Context, r *http.Request) (interface{}, error) {
 	return req, nil
 }
 
+func decodeLast(_ context.Context, r *http.Request) (interface{}, error) {
+	chanIDs := bone.GetValue(r, "chanIDs")
+	if chanIDs == "" {
+		return nil, errInvalidRequest
+	}
+	chanIDList := strings.Split(chanIDs, ",")
+	for i := range chanIDList {
+		if err := authorize(r, chanIDList[i]); err != nil {
+			return nil, err
+		}
+	}
+
+	query := map[string]string{}
+	for _, name := range queryFields {
+		if value := bone.GetQuery(r, name); len(value) == 1 {
+			query[name] = value[0]
+		}
+	}
+	if query[format] == "" {
+		query[format] = defFormat
+	}
+
+	req := lastMeasurementReq{
+		chanIDs: chanIDList,
+		query:   query,
+	}
+
+	return req, nil
+}
+
 func encodeResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
 	w.Header().Set("Content-Type", contentType)
 
@@ -115,6 +241,23 @@ func encodeResponse(_ context.Context, w http.ResponseWriter, response interface
 	return json.NewEncoder(w).Encode(response)
 }
 
+//func encodeLastResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
+//	w.Header().Set("Content-Type", contentType)
+//
+//	if ar, ok := response.(mainflux.Response); ok {
+//		for k, v := range ar.Headers() {
+//			w.Header().Set(k, v)
+//		}
+//
+//		w.WriteHeader(ar.Code())
+//
+//		if ar.Empty() {
+//			return nil
+//		}
+//	}
+//
+//	return json.NewEncoder(w).Encode(response)
+//}
 func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 	switch {
 	case errors.Contains(err, nil):

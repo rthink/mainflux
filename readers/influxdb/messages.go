@@ -3,7 +3,6 @@ package influxdb
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gofrs/uuid"
 	"reflect"
 	"strconv"
 	"strings"
@@ -41,19 +40,178 @@ func New(client influxdata.Client, database string) readers.MessageRepository {
 	}
 }
 
-func (repo *influxRepository) GetLastMeasurement(publishers []uuid.UUID, sensorName string) (readers.MessagesPage, error) {
+/**
+desc：获取指定chanID和name的设备的最新值
+param:
+	chanIDs: 要查询的chanID集合
+	query: 查询条件，如name
+*/
+func (repo *influxRepository) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+	measurement, ok := query[format]
+	if !ok {
+		measurement = defMeasurement
+	}
+	// Remove format filter and format the rest properly.
+	delete(query, format)
+	//将chanIDs集合和query查询条件放进sql语句中
+	condition := fmtConditionByChanIDs(chanIDs, query)
+
+	cmd := fmt.Sprintf(`SELECT last("value") as "value", "unit" FROM %s WHERE %s GROUP BY publisher`, measurement, condition)
 	//todo
-	return readers.MessagesPage{}, nil
+	fmt.Println("cmd = " + cmd)
+
+	q := influxdata.Query{
+		Command:  cmd,
+		Database: repo.database,
+	}
+
+	var ret []readers.Message
+	//查询数据库 得到结果集resp
+	resp, err := repo.client.Query(q)
+	if err != nil {
+		return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
+	}
+	if resp.Error() != nil {
+		return readers.MessagesPage{}, errors.Wrap(errReadMessages, resp.Error())
+	}
+
+	if len(resp.Results) < 1 || len(resp.Results[0].Series) < 1 {
+		return readers.MessagesPage{}, nil
+	}
+	//解析结果
+	result := resp.Results[0].Series[0]
+	for _, v := range result.Values {
+		//解析fields字段的值
+		temp := parseMessage(measurement, result.Columns, v)
+		//解析tag字段的值
+		parseMessageTags(result.Tags, &temp)
+		ret = append(ret, temp)
+	}
+
+	return readers.MessagesPage{
+		Total:    uint64(len(ret)),
+		Offset:   0,
+		Limit:    0,
+		Messages: ret,
+	}, nil
 }
 
-func PumpRunningSeconds(publishers []uuid.UUID, names []string, startTime string, endTime string) ([]readers.MessagesPage, error) {
+/**
+desc：获取指定chanID和name的设备在指定时间段内泵站开启的时间
+param:
+	chanIDs: 要查询的chanID集合
+	query: 查询条件，如name
+*/
+func (repo *influxRepository) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+	measurement, ok := query[format]
+	if !ok {
+		measurement = defMeasurement
+	}
+	// Remove format filter and format the rest properly.
+	delete(query, format)
+	//将chanIDs集合和query查询条件放进sql语句中
+	condition := fmtConditionByChanIDs(chanIDs, query)
+
+	cmd := fmt.Sprintf(`SELECT INTEGRAL(value) as value FROM %s WHERE %s GROUP BY group by "publisher" , "name"`, measurement, condition)
 	//todo
-	return []readers.MessagesPage{}, nil
+	fmt.Println("cmd = " + cmd)
+
+	q := influxdata.Query{
+		Command:  cmd,
+		Database: repo.database,
+	}
+
+	var ret []readers.Message
+
+	resp, err := repo.client.Query(q)
+	if err != nil {
+		return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
+	}
+	if resp.Error() != nil {
+		return readers.MessagesPage{}, errors.Wrap(errReadMessages, resp.Error())
+	}
+
+	if len(resp.Results) < 1 || len(resp.Results[0].Series) < 1 {
+		return readers.MessagesPage{}, nil
+	}
+
+	result := resp.Results[0].Series[0]
+	for _, v := range result.Values {
+		//解析fields字段的值
+		temp := parseMessage(measurement, result.Columns, v)
+		//解析tag字段的值
+		parseMessageTags(result.Tags, &temp)
+		ret = append(ret, temp)
+	}
+
+	return readers.MessagesPage{
+		Total:    uint64(len(ret)),
+		Offset:   0,
+		Limit:    0,
+		Messages: ret,
+	}, nil
 }
 
-func GetTimeseriesByPublisher(publisher uuid.UUID, sensorName string, startTime string, endTime string, aggregationType string, interval string) (readers.MessagesPage, error) {
+/**
+desc：获取指定chanID和name的设备在指定时间段内
+param:
+	chanIDs: 要查询的chanID集合
+	query: 查询条件，如name
+	offset,limit: 分页条件
+	aggregationType:sql语句中执行的函数, 如sum, max
+	interval: 时间间隔
+*/
+func (repo *influxRepository) GetMessageByPublisher(chanID string, offset, limit uint64, aggregationType string, interval string, query map[string]string) (readers.MessagesPage, error) {
+	//若aggregationType为空 说明sql中没有函数  调用ReadAll
+	if aggregationType == "" {
+		return repo.ReadAll(chanID, offset, limit, query)
+	}
+	measurement, ok := query[format]
+	if !ok {
+		measurement = defMeasurement
+	}
+	// Remove format filter and format the rest properly.
+	delete(query, format)
+	condition := fmtCondition(chanID, query)
+
+	cmd := fmt.Sprintf(`SELECT %s ("value") as value, last("unit") as unit FROM %s WHERE %s GROUP BY time("%s")"name"`, aggregationType, measurement, condition, interval)
 	//todo
-	return readers.MessagesPage{}, nil
+	fmt.Println("cmd = " + cmd)
+	q := influxdata.Query{
+		Command:  cmd,
+		Database: repo.database,
+	}
+
+	var ret []readers.Message
+	//查询数据库
+	resp, err := repo.client.Query(q)
+	if err != nil {
+		return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
+	}
+	if resp.Error() != nil {
+		return readers.MessagesPage{}, errors.Wrap(errReadMessages, resp.Error())
+	}
+
+	if len(resp.Results) < 1 || len(resp.Results[0].Series) < 1 {
+		return readers.MessagesPage{}, nil
+	}
+	//解析结果
+	result := resp.Results[0].Series[0]
+	for _, v := range result.Values {
+		ret = append(ret, parseMessage(measurement, result.Columns, v))
+	}
+
+	total, err := repo.count(measurement, condition)
+	if err != nil {
+		return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
+	}
+
+	return readers.MessagesPage{
+		Total:    total,
+		Offset:   0,
+		Limit:    0,
+		Messages: ret,
+	}, nil
 }
 
 func (repo *influxRepository) ReadAll(chanID string, offset, limit uint64, query map[string]string) (readers.MessagesPage, error) {
@@ -144,7 +302,63 @@ func (repo *influxRepository) count(measurement, condition string) (uint64, erro
 
 	return strconv.ParseUint(count.String(), 10, 64)
 }
-
+func fmtConditionByChanIDs(chanIDs []string, query map[string]string) string {
+	condition := ""
+	for i := range chanIDs {
+		if condition == "" {
+			condition = fmt.Sprintf(`channel='%s'`, chanIDs[i])
+		} else {
+			condition = fmt.Sprintf(`%s OR channel ='%s'`, condition, chanIDs[i])
+		}
+	}
+	//condition := fmt.Sprintf(`channel='%s'`, chanID)
+	for name, value := range query {
+		switch name {
+		case "name":
+			nameList := strings.Split(value, ",")
+			if len(nameList) > 0 {
+				condition = fmt.Sprintf(`%s and ( `, condition)
+				for i := range nameList {
+					condition = fmt.Sprintf(`%s "%s"='%s'`, condition, name, value)
+					if i != len(nameList)-1 {
+						condition = fmt.Sprintf(`%s or `, condition)
+					}
+				}
+				condition = fmt.Sprintf(`%s ) `, condition)
+			}
+		case
+			"channel",
+			"subtopic",
+			"publisher",
+			//"name",
+			"protocol":
+			condition = fmt.Sprintf(`%s AND "%s"='%s'`, condition, name, value)
+		case "v":
+			condition = fmt.Sprintf(`%s AND value = %s`, condition, value)
+		case "vb":
+			condition = fmt.Sprintf(`%s AND boolValue = %s`, condition, value)
+		case "vs":
+			condition = fmt.Sprintf(`%s AND stringValue = '%s'`, condition, value)
+		case "vd":
+			condition = fmt.Sprintf(`%s AND dataValue = '%s'`, condition, value)
+		case "from":
+			fVal, err := strconv.ParseFloat(value, 64)
+			if err != nil {
+				continue
+			}
+			iVal := int64(fVal * 1e9)
+			condition = fmt.Sprintf(`%s AND time >= %d`, condition, iVal)
+		case "to":
+			fVal, err := strconv.ParseFloat(value, 64)
+			if err != nil {
+				continue
+			}
+			iVal := int64(fVal * 1e9)
+			condition = fmt.Sprintf(`%s AND time < %d`, condition, iVal)
+		}
+	}
+	return condition
+}
 func fmtCondition(chanID string, query map[string]string) string {
 	condition := fmt.Sprintf(`channel='%s'`, chanID)
 	for name, value := range query {
@@ -181,6 +395,13 @@ func fmtCondition(chanID string, query map[string]string) string {
 		}
 	}
 	return condition
+}
+
+func parseMessageTags(tags map[string]string, message *interface{}) {
+	//*senml.Message
+	s := (*message).(senml.Message)
+	s.Publisher = tags["publisher"]
+	s.Name = tags["name"]
 }
 
 // ParseMessage and parseValues are util methods. Since InfluxDB client returns

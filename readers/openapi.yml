@@ -37,7 +37,7 @@ paths:
           description: Missing or invalid access token provided.
         '500':
           $ref: "#/components/responses/ServiceError"
-  /messages/list/{publisher}:
+  /messages/list/{chanID}:
     get:
       summary: Retrieves timeseries messages sent by things
       description: |
@@ -49,23 +49,23 @@ paths:
         - messages
       operationId: findMessagesByPublisher
       parameters:
-        - $ref: "#/parameters/Publisher"
-        - $ref: "#/parameters/SensorName"
-        - $ref: "#/parameters/StartTime"
-        - $ref: "#/parameters/EndTime"
+        - $ref: "#/components/parameters/ChanId"
+        - $ref: "#/components/parameters/Name"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - $ref: "#/parameters/AggregationType"
         - $ref: "#/parameters/Interval"
       responses:
         200:
           #description: Data retrieved.
-          $ref: "#/components/schemas/TimeseriesData"
+          $ref: "#/components/responses/MessagesPageRes"
         400:
           description: Failed due to malformed query parameters.
         403:
           description: Missing or invalid access token provided.
         500:
           $ref: "#/responses/ServiceError"
-  /messages/last/{publishers}:
+  /messages/last/{chanIDs}:
     get:
       summary: Retrieves last timeseries messages sent by things identified by a list of publishers.
       description: |
@@ -75,12 +75,12 @@ paths:
         - messages
       operationId: getLastMeasurement
       parameters:
-        - $ref: "#/parameters/Publishers"
-        - $ref: "#/parameters/SensorName"
+        - $ref: "#/components/parameters/ChanIds"
+        - $ref: "#/parameters/Name"
       responses:
         200:
           #description: Data retrieved.
-          $ref: "#/components/schemas/TimeseriesData"
+          $ref: "#/components/responses/MessagesPageRes"
         400:
           description: Failed due to malformed query parameters.
         403:
@@ -88,7 +88,7 @@ paths:
         500:
           $ref: "#/responses/ServiceError"
 
-  /timeseries/pumpRunningSeconds/{publishers}:
+  /timeseries/pumpRunningSeconds/{chanIDs}:
     post:
       summary: 获取指定泵站的开启时间
       description: |
@@ -98,14 +98,14 @@ paths:
         - messages
       operationId: pumpRunningSeconds
       parameters:
-        - $ref: "#/parameters/Publishers"
-        - $ref: "#/parameters/SensorNames"
-        - $ref: "#/parameters/StartTime"
-        - $ref: "#/parameters/EndTime"
+        - $ref: "#/components/parameters/ChanIds"
+        - $ref: "#/parameters/Names"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
       responses:
         200:
           #description: Data retrieved.
-          $ref: "#/components/schemas/TimeseriesData"
+          $ref: "#/components/responses/MessagesPageRes"
         400:
           description: Failed due to malformed query parameters.
         403:
