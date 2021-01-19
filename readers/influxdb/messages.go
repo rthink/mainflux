@@ -25,16 +25,18 @@ const (
 
 var errReadMessages = errors.New("failed to read messages from influxdb database")
 
-var _ readers.MessageRepository = (*influxRepository)(nil)
+var _ readers.MessageRepository = (*InfluxRepository)(nil)
 
-type influxRepository struct {
+//var _ InfluxdbMessageRepository = (*InfluxRepository)(nil)
+
+type InfluxRepository struct {
 	database string
 	client   influxdata.Client
 }
 
 // New returns new InfluxDB reader.
 func New(client influxdata.Client, database string) readers.MessageRepository {
-	return &influxRepository{
+	return &InfluxRepository{
 		database,
 		client,
 	}
@@ -46,7 +48,7 @@ param:
 	chanIDs: 要查询的chanID集合
 	query: 查询条件，如name
 */
-func (repo *influxRepository) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+func (repo *InfluxRepository) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
 	measurement, ok := query[format]
 	if !ok {
 		measurement = defMeasurement
@@ -56,7 +58,7 @@ func (repo *influxRepository) GetLastMeasurement(chanIDs []string, query map[str
 	//将chanIDs集合和query查询条件放进sql语句中
 	condition := fmtConditionByChanIDs(chanIDs, query)
 
-	cmd := fmt.Sprintf(`SELECT last("value") as "value", "unit" FROM %s WHERE %s GROUP BY publisher`, measurement, condition)
+	cmd := fmt.Sprintf(`SELECT last("value") as "value", "unit" FROM %s WHERE %s GROUP BY channel`, measurement, condition)
 	//todo
 	fmt.Println("cmd = " + cmd)
 
@@ -64,7 +66,8 @@ func (repo *influxRepository) GetLastMeasurement(chanIDs []string, query map[str
 		Command:  cmd,
 		Database: repo.database,
 	}
-
+	//todo
+	fmt.Println("database = " + q.Database)
 	var ret []readers.Message
 	//查询数据库 得到结果集resp
 	resp, err := repo.client.Query(q)
@@ -80,6 +83,7 @@ func (repo *influxRepository) GetLastMeasurement(chanIDs []string, query map[str
 	}
 	//解析结果
 	result := resp.Results[0].Series[0]
+	fmt.Println(result)
 	for _, v := range result.Values {
 		//解析fields字段的值
 		temp := parseMessage(measurement, result.Columns, v)
@@ -102,7 +106,7 @@ param:
 	chanIDs: 要查询的chanID集合
 	query: 查询条件，如name
 */
-func (repo *influxRepository) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+func (repo *InfluxRepository) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
 	measurement, ok := query[format]
 	if !ok {
 		measurement = defMeasurement
@@ -112,7 +116,7 @@ func (repo *influxRepository) PumpRunningSeconds(chanIDs []string, query map[str
 	//将chanIDs集合和query查询条件放进sql语句中
 	condition := fmtConditionByChanIDs(chanIDs, query)
 
-	cmd := fmt.Sprintf(`SELECT INTEGRAL(value) as value FROM %s WHERE %s GROUP BY group by "publisher" , "name"`, measurement, condition)
+	cmd := fmt.Sprintf(`SELECT INTEGRAL(value) as value FROM %s WHERE %s GROUP BY "publisher" , "name"`, measurement, condition)
 	//todo
 	fmt.Println("cmd = " + cmd)
 
@@ -161,7 +165,7 @@ param:
 	aggregationType:sql语句中执行的函数, 如sum, max
 	interval: 时间间隔
 */
-func (repo *influxRepository) GetMessageByPublisher(chanID string, offset, limit uint64, aggregationType string, interval string, query map[string]string) (readers.MessagesPage, error) {
+func (repo *InfluxRepository) GetMessageByPublisher(chanID string, offset, limit uint64, aggregationType string, interval string, query map[string]string) (readers.MessagesPage, error) {
 	//若aggregationType为空 说明sql中没有函数  调用ReadAll
 	if aggregationType == "" {
 		return repo.ReadAll(chanID, offset, limit, query)
@@ -214,7 +218,7 @@ func (repo *influxRepository) GetMessageByPublisher(chanID string, offset, limit
 	}, nil
 }
 
-func (repo *influxRepository) ReadAll(chanID string, offset, limit uint64, query map[string]string) (readers.MessagesPage, error) {
+func (repo *InfluxRepository) ReadAll(chanID string, offset, limit uint64, query map[string]string) (readers.MessagesPage, error) {
 	measurement, ok := query[format]
 	if !ok {
 		measurement = defMeasurement
@@ -228,6 +232,7 @@ func (repo *influxRepository) ReadAll(chanID string, offset, limit uint64, query
 		Command:  cmd,
 		Database: repo.database,
 	}
+	fmt.Println("database = " + repo.database)
 
 	var ret []readers.Message
 
@@ -261,7 +266,7 @@ func (repo *influxRepository) ReadAll(chanID string, offset, limit uint64, query
 	}, nil
 }
 
-func (repo *influxRepository) count(measurement, condition string) (uint64, error) {
+func (repo *InfluxRepository) count(measurement, condition string) (uint64, error) {
 	cmd := fmt.Sprintf(`SELECT COUNT(*) FROM %s WHERE %s`, measurement, condition)
 	q := influxdata.Query{
 		Command:  cmd,

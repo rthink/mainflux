@@ -20,6 +20,18 @@ type loggingMiddleware struct {
 	svc    readers.MessageRepository
 }
 
+func (lm *loggingMiddleware) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+	panic("implement me")
+}
+
+func (lm *loggingMiddleware) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+	panic("implement me")
+}
+
+func (lm *loggingMiddleware) GetMessageByPublisher(chanID string, offset, limit uint64, aggregationType string, interval string, query map[string]string) (readers.MessagesPage, error) {
+	panic("implement me")
+}
+
 // LoggingMiddleware adds logging facilities to the core service.
 func LoggingMiddleware(svc readers.MessageRepository, logger logger.Logger) readers.MessageRepository {
 	return &loggingMiddleware{

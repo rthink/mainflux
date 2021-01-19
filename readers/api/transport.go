@@ -6,6 +6,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -73,7 +74,8 @@ func MakeHandler(svc readers.MessageRepository, tc mainflux.ThingsServiceClient,
 
 	mux.GetFunc("/version", mainflux.Version(svcName))
 	mux.Handle("/metrics", promhttp.Handler())
-
+	//todo
+	fmt.Println("注册成功")
 	return mux
 }
 
@@ -114,11 +116,13 @@ func decodeMessageByChannal(_ context.Context, r *http.Request) (interface{}, er
 		query[format] = defFormat
 	}
 
-	req := listMessagesReq{
-		chanID: chanID,
-		offset: offset,
-		limit:  limit,
-		query:  query,
+	req := getMessageReq{
+		aggregationType: query["aggregationType"],
+		interval:        query["interval"],
+		chanID:          chanID,
+		offset:          offset,
+		limit:           limit,
+		query:           query,
 	}
 
 	return req, nil
@@ -224,9 +228,11 @@ func decodeLast(_ context.Context, r *http.Request) (interface{}, error) {
 }
 
 func encodeResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
+	fmt.Println("encodeResponse func -----------------------------------")
 	w.Header().Set("Content-Type", contentType)
 
 	if ar, ok := response.(mainflux.Response); ok {
+		//fmt.Println("encodeResponse func: response = mainflux.Response")
 		for k, v := range ar.Headers() {
 			w.Header().Set(k, v)
 		}

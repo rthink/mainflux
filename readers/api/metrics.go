@@ -20,6 +20,18 @@ type metricsMiddleware struct {
 	svc     readers.MessageRepository
 }
 
+func (mm *metricsMiddleware) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+	panic("implement me")
+}
+
+func (mm *metricsMiddleware) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+	panic("implement me")
+}
+
+func (mm *metricsMiddleware) GetMessageByPublisher(chanID string, offset, limit uint64, aggregationType string, interval string, query map[string]string) (readers.MessagesPage, error) {
+	panic("implement me")
+}
+
 // MetricsMiddleware instruments core service by tracking request count and latency.
 func MetricsMiddleware(svc readers.MessageRepository, counter metrics.Counter, latency metrics.Histogram) readers.MessageRepository {
 	return &metricsMiddleware{
