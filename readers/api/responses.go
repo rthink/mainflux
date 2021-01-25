@@ -39,10 +39,11 @@ func (res pageRes) Headers() map[string]string {
 func temp(msg interface{}) string {
 	message, ok := msg.(senml.Message)
 	if ok == false {
-		fmt.Println("temp func : error")
+		//fmt.Println("temp func : error")
 		return "error"
 	}
 	jsonstr, _ := json.MarshalIndent(message, "", "	")
+	//fmt.Println("responses:message = " , message)
 	fmt.Println("responses:jsonstr = " + string(jsonstr))
 	return string(jsonstr)
 }

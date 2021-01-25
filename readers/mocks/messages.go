@@ -23,32 +23,19 @@ type messageRepositoryMock struct {
 func (repo *messageRepositoryMock) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
 	connInflux := ConnInflux()
 	influx := influxdb.New(connInflux, "mainflux")
-
-	m := map[string]string{}
-	m["name"] = "pump_1"
-	return influx.GetLastMeasurement([]string{"ba22f57d-642e-4b82-9718-5e3b68809ac0"}, m)
+	return influx.GetLastMeasurement(chanIDs, query)
 }
 
 func (repo *messageRepositoryMock) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
-
 	connInflux := ConnInflux()
 	influx := influxdb.New(connInflux, "mainflux")
-
-	m := map[string]string{}
-	m["name"] = "pump_1"
-	m["from"] = "2020-10-13T06:00:00Z"
-	m["to"] = "2020-10-14T06:00:00Z"
-	return influx.PumpRunningSeconds([]string{"ba22f57d-642e-4b82-9718-5e3b68809ac0"}, m)
+	return influx.PumpRunningSeconds(chanIDs, query)
 }
 
 func (repo *messageRepositoryMock) GetMessageByPublisher(chanID string, offset, limit uint64, aggregationType string, interval string, query map[string]string) (readers.MessagesPage, error) {
-
 	connInflux := ConnInflux()
 	influx := influxdb.New(connInflux, "mainflux")
-
-	m := map[string]string{}
-	//m["name"] = "pump_1"
-	return influx.GetMessageByPublisher("ba22f57d-642e-4b82-9718-5e3b68809ac0", 1, 5, "", "", m)
+	return influx.GetMessageByPublisher(chanID, offset, limit, aggregationType, interval, query)
 }
 
 // NewMessageRepository returns mock implementation of message repository.

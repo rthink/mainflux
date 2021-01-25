@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -71,11 +72,8 @@ func MakeHandler(svc readers.MessageRepository, tc mainflux.ThingsServiceClient,
 		encodeResponse,
 		opts...,
 	))
-
 	mux.GetFunc("/version", mainflux.Version(svcName))
 	mux.Handle("/metrics", promhttp.Handler())
-	//todo
-	fmt.Println("注册成功")
 	return mux
 }
 
@@ -129,6 +127,7 @@ func decodeMessageByChannal(_ context.Context, r *http.Request) (interface{}, er
 }
 
 func decodepumpRunning(_ context.Context, r *http.Request) (interface{}, error) {
+	log.Println("decodepumpRunning URL: ", r.URL.Path)
 	chanIDs := bone.GetValue(r, "chanIDs")
 	if chanIDs == "" {
 		return nil, errInvalidRequest
@@ -141,10 +140,12 @@ func decodepumpRunning(_ context.Context, r *http.Request) (interface{}, error) 
 	}
 
 	query := map[string]string{}
-	for _, name := range queryFields {
-		if value := bone.GetQuery(r, name); len(value) == 1 {
-			query[name] = value[0]
+	r.ParseForm()
+	for k, v := range r.PostForm {
+		if len(v) < 1 {
+			continue
 		}
+		query[k] = v[0]
 	}
 	if query[format] == "" {
 		query[format] = defFormat
@@ -158,6 +159,7 @@ func decodepumpRunning(_ context.Context, r *http.Request) (interface{}, error) 
 	return req, nil
 }
 func decodeList(_ context.Context, r *http.Request) (interface{}, error) {
+	log.Println("decodeList URL: ", r.URL.Path)
 	chanID := bone.GetValue(r, "chanID")
 	if chanID == "" {
 		return nil, errInvalidRequest
@@ -198,6 +200,7 @@ func decodeList(_ context.Context, r *http.Request) (interface{}, error) {
 }
 
 func decodeLast(_ context.Context, r *http.Request) (interface{}, error) {
+	log.Println("decodeLast URL: ", r.URL.Path)
 	chanIDs := bone.GetValue(r, "chanIDs")
 	if chanIDs == "" {
 		return nil, errInvalidRequest
@@ -208,13 +211,19 @@ func decodeLast(_ context.Context, r *http.Request) (interface{}, error) {
 			return nil, err
 		}
 	}
-
+	fmt.Println("**********")
+	q := r.URL.Query()
+	id := q.Get("name")
 	query := map[string]string{}
-	for _, name := range queryFields {
-		if value := bone.GetQuery(r, name); len(value) == 1 {
-			query[name] = value[0]
-		}
-	}
+	query["name"] = id
+	//r.ParseForm()
+	//for k, v := range r.PostForm {
+	//	if len(v) < 1 {
+	//		continue
+	//	}
+	//	query[k] = v[0]
+	//	fmt.Println(query[k], " = ", v[0])
+	//}
 	if query[format] == "" {
 		query[format] = defFormat
 	}
@@ -232,13 +241,11 @@ func encodeResponse(_ context.Context, w http.ResponseWriter, response interface
 	w.Header().Set("Content-Type", contentType)
 
 	if ar, ok := response.(mainflux.Response); ok {
-		//fmt.Println("encodeResponse func: response = mainflux.Response")
 		for k, v := range ar.Headers() {
-			w.Header().Set(k, v)
+			w.Header().Add(k, v)
+			//result[k] = v
 		}
-
 		w.WriteHeader(ar.Code())
-
 		if ar.Empty() {
 			return nil
 		}
@@ -247,23 +254,6 @@ func encodeResponse(_ context.Context, w http.ResponseWriter, response interface
 	return json.NewEncoder(w).Encode(response)
 }
 
-//func encodeLastResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
-//	w.Header().Set("Content-Type", contentType)
-//
-//	if ar, ok := response.(mainflux.Response); ok {
-//		for k, v := range ar.Headers() {
-//			w.Header().Set(k, v)
-//		}
-//
-//		w.WriteHeader(ar.Code())
-//
-//		if ar.Empty() {
-//			return nil
-//		}
-//	}
-//
-//	return json.NewEncoder(w).Encode(response)
-//}
 func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 	switch {
 	case errors.Contains(err, nil):
