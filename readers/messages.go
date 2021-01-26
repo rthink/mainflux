@@ -14,9 +14,9 @@ type MessageRepository interface {
 	// limited number of messages.
 	ReadAll(chanID string, offset, limit uint64, query map[string]string) (MessagesPage, error)
 
-	GetLastMeasurement(chanIDs []string, query map[string]string) (MessagesPage, error)
+	GetLastMeasurement(chanIDs []string, query map[string]string) (Messages, error)
 
-	PumpRunningSeconds(chanIDs []string, query map[string]string) (MessagesPage, error)
+	PumpRunningSeconds(chanIDs []string, query map[string]string) (Messages, error)
 
 	GetMessageByPublisher(chanID string, offset, limit uint64, aggregationType string, interval string, query map[string]string) (MessagesPage, error)
 }
@@ -30,5 +30,9 @@ type MessagesPage struct {
 	Total    uint64
 	Offset   uint64
 	Limit    uint64
+	Messages []Message
+}
+type Messages struct {
+	Total    uint64
 	Messages []Message
 }

@@ -4,7 +4,6 @@
 package mocks
 
 import (
-	"fmt"
 	influxdata "github.com/influxdata/influxdb/client/v2"
 	"log"
 	"sync"
@@ -20,13 +19,13 @@ type messageRepositoryMock struct {
 	messages map[string][]readers.Message
 }
 
-func (repo *messageRepositoryMock) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+func (repo *messageRepositoryMock) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.Messages, error) {
 	connInflux := ConnInflux()
 	influx := influxdb.New(connInflux, "mainflux")
 	return influx.GetLastMeasurement(chanIDs, query)
 }
 
-func (repo *messageRepositoryMock) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+func (repo *messageRepositoryMock) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.Messages, error) {
 	connInflux := ConnInflux()
 	influx := influxdb.New(connInflux, "mainflux")
 	return influx.PumpRunningSeconds(chanIDs, query)
@@ -59,7 +58,6 @@ func ConnInflux() influxdata.Client {
 }
 
 func (repo *messageRepositoryMock) ReadAll(chanID string, offset, limit uint64, query map[string]string) (readers.MessagesPage, error) {
-	fmt.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 	repo.mutex.Lock()
 	defer repo.mutex.Unlock()
 

@@ -36,19 +36,14 @@ func lastMeasurementEndpoint(svc readers.MessageRepository) endpoint.Endpoint {
 	return func(_ context.Context, request interface{}) (interface{}, error) {
 		req := request.(lastMeasurementReq)
 
-		/*if err := req.validate(); err != nil {
-			return nil, err
-		}*/
 		//调用服务
 		page, err := svc.GetLastMeasurement(req.chanIDs, req.query)
 		if err != nil {
 			return nil, err
 		}
 
-		return pageRes{
+		return res{
 			Total:    page.Total,
-			Offset:   page.Offset,
-			Limit:    page.Limit,
 			Messages: page.Messages,
 		}, nil
 	}
@@ -64,10 +59,8 @@ func pumpRunningSecondsEndpoint(svc readers.MessageRepository) endpoint.Endpoint
 			return nil, err
 		}
 
-		return pageRes{
+		return res{
 			Total:    page.Total,
-			Offset:   page.Offset,
-			Limit:    page.Limit,
 			Messages: page.Messages,
 		}, nil
 	}

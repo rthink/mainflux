@@ -29,6 +29,18 @@ type mongoRepository struct {
 	db *mongo.Database
 }
 
+func (repo mongoRepository) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.Messages, error) {
+	panic("implement me")
+}
+
+func (repo mongoRepository) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.Messages, error) {
+	panic("implement me")
+}
+
+func (repo mongoRepository) GetMessageByPublisher(chanID string, offset, limit uint64, aggregationType string, interval string, query map[string]string) (readers.MessagesPage, error) {
+	panic("implement me")
+}
+
 // New returns new MongoDB reader.
 func New(db *mongo.Database) readers.MessageRepository {
 	return mongoRepository{

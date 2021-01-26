@@ -137,14 +137,13 @@ func TestGetLastMeasurement(t *testing.T) {
 		res.URL.RawQuery = q.Encode() //重新赋值给URL的RawQuery字段
 		//res.Header.Add("content-type","application/x-www-form-urlencoded")
 		if err != nil {
-			//return nil, err
+
 		}
 		if req.token != "" {
 			res.Header.Set("Authorization", req.token)
 		}
 		do, err := req.client.Do(res)
 
-		//todo
 		log.Println("rep:")
 		log.Println("Status : ", do.Status)
 		msg := do.Header.Get("messages")
@@ -406,66 +405,3 @@ func TestReadAll(t *testing.T) {
 		assert.Equal(t, tc.status, res.StatusCode, fmt.Sprintf("%s: expected %d got %d", desc, tc.status, res.StatusCode))
 	}
 }
-
-//
-//func TestReadAll(t *testing.T) {
-//	svc := newService()
-//	tc := mocks.NewThingsService()
-//	ts := newServer(svc, tc)
-//	defer ts.Close()
-//
-//	cases := map[string]struct {
-//		url    string
-//		token  string
-//		status int
-//	}{
-//		"read page with valid offset and limit": {
-//			url:    fmt.Sprintf("%s/messages/last/ba22f57d-642e-4b82-9718-5e3b68809ac0", ts.URL), //messages/last/{chanIDs}
-//			token:  token,
-//			status: http.StatusOK,
-//		},
-//		"read page with negative offset": {
-//			url:    fmt.Sprintf("%s/messages/list/ba22f57d-642e-4b82-9718-5e3b68809ac0", ts.URL),
-//			token:  token,
-//			status: http.StatusOK,
-//		},
-//		"read page with negative limit": {
-//			url:    fmt.Sprintf("%s/messages/pumpRunningSeconds/ba22f57d-642e-4b82-9718-5e3b68809ac0", ts.URL),
-//			token:  token,
-//			status: http.StatusOK,
-//		},
-//		/*"read page with zero limit": {
-//			url:    fmt.Sprintf("%s/messages/last/ba22f57d-642e-4b82-9718-5e3b68809ac0", ts.URL),
-//			token:  token,
-//			status: http.StatusBadRequest,
-//		},*/
-//	}
-//
-//	for desc, tc := range cases {
-//		req := testRequest{
-//			client: ts.Client(),
-//			method: http.MethodGet,
-//			url:    tc.url,
-//			token:  tc.token,
-//		}
-//		if desc == "read page with negative limit" {
-//			req.method = http.MethodPost
-//		}
-//		//todo
-//		fmt.Println("request---------")
-//		fmt.Println("url : " + tc.url)
-//		fmt.Println("token : " + tc.token)
-//		fmt.Println("status : ", tc.status)
-//		//
-//		res, _ /*err*/ := req.make()
-//		//todo
-//		fmt.Println("rep---------")
-//		fmt.Println("StatusCode : ", res.StatusCode)
-//		fmt.Println("Status : ", res.Status)
-//		msg := res.Header.Get("messages")
-//		fmt.Println("msg = " + msg)
-//		//
-//		//assert.Nil(t, err, fmt.Sprintf("%s: unexpected error %s", desc, err))
-//		//assert.Equal(t, tc.status, res.StatusCode, fmt.Sprintf("%s: expected %d got %d", desc, tc.status, res.StatusCode))
-//	}
-//}

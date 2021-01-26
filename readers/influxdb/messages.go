@@ -49,7 +49,7 @@ param:
 	chanIDs: 要查询的chanID集合
 	query: 查询条件，如name
 */
-func (repo *InfluxRepository) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+func (repo *InfluxRepository) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.Messages, error) {
 	measurement, ok := query[format]
 	if !ok {
 		measurement = defMeasurement
@@ -60,27 +60,24 @@ func (repo *InfluxRepository) GetLastMeasurement(chanIDs []string, query map[str
 	condition := fmtConditionByChanIDs(chanIDs, query)
 
 	cmd := fmt.Sprintf(`SELECT last("value") as "value", "unit" FROM %s WHERE %s GROUP BY channel, "name"`, measurement, condition)
-	//todo
-	fmt.Println("cmd = " + cmd)
+	log.Println("cmd = " + cmd)
 
 	q := influxdata.Query{
 		Command:  cmd,
 		Database: repo.database,
 	}
-	//todo
-	fmt.Println("database = " + q.Database)
 	var ret []readers.Message
 	//查询数据库 得到结果集resp
 	resp, err := repo.client.Query(q)
 	if err != nil {
-		return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
+		return readers.Messages{}, errors.Wrap(errReadMessages, err)
 	}
 	if resp.Error() != nil {
-		return readers.MessagesPage{}, errors.Wrap(errReadMessages, resp.Error())
+		return readers.Messages{}, errors.Wrap(errReadMessages, resp.Error())
 	}
 
 	if len(resp.Results) < 1 || len(resp.Results[0].Series) < 1 {
-		return readers.MessagesPage{}, nil
+		return readers.Messages{}, nil
 	}
 	//解析结果
 	result := resp.Results[0].Series[0]
@@ -89,20 +86,8 @@ func (repo *InfluxRepository) GetLastMeasurement(chanIDs []string, query map[str
 		temp := parseMessageByFieldsAndTags(v.Tags, result.Columns, v.Values[0])
 		ret = append(ret, temp)
 	}
-	//result := resp.Results[0].Series[0]
-	//fmt.Println(result)
-	//for _, v := range result.Values {
-	//	//解析fields字段的值
-	//	temp := parseMessage(measurement, result.Columns, v)
-	//	//解析tag字段的值
-	//	parseMessageTags(result.Tags, &temp)
-	//	ret = append(ret, temp)
-	//}
-
-	return readers.MessagesPage{
+	return readers.Messages{
 		Total:    uint64(len(ret)),
-		Offset:   0,
-		Limit:    0,
 		Messages: ret,
 	}, nil
 }
@@ -113,7 +98,7 @@ param:
 	chanIDs: 要查询的chanID集合
 	query: 查询条件，如name
 */
-func (repo *InfluxRepository) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+func (repo *InfluxRepository) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.Messages, error) {
 	measurement, ok := query[format]
 	if !ok {
 		measurement = defMeasurement
@@ -122,10 +107,8 @@ func (repo *InfluxRepository) PumpRunningSeconds(chanIDs []string, query map[str
 	delete(query, format)
 	//将chanIDs集合和query查询条件放进sql语句中
 	condition := fmtConditionByChanIDs(chanIDs, query)
-
 	cmd := fmt.Sprintf(`SELECT INTEGRAL(value) as value FROM %s WHERE %s GROUP BY "channel" , "name"`, measurement, condition)
-	//todo
-	fmt.Println("cmd = " + cmd)
+	log.Println("cmd = " + cmd)
 
 	q := influxdata.Query{
 		Command:  cmd,
@@ -136,14 +119,14 @@ func (repo *InfluxRepository) PumpRunningSeconds(chanIDs []string, query map[str
 
 	resp, err := repo.client.Query(q)
 	if err != nil {
-		return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
+		return readers.Messages{}, errors.Wrap(errReadMessages, err)
 	}
 	if resp.Error() != nil {
-		return readers.MessagesPage{}, errors.Wrap(errReadMessages, resp.Error())
+		return readers.Messages{}, errors.Wrap(errReadMessages, resp.Error())
 	}
 
 	if len(resp.Results) < 1 || len(resp.Results[0].Series) < 1 {
-		return readers.MessagesPage{}, nil
+		return readers.Messages{}, nil
 	}
 
 	result := resp.Results[0].Series[0]
@@ -152,10 +135,8 @@ func (repo *InfluxRepository) PumpRunningSeconds(chanIDs []string, query map[str
 		temp := parseMessageByFieldsAndTags(v.Tags, result.Columns, v.Values[0])
 		ret = append(ret, temp)
 	}
-	return readers.MessagesPage{
+	return readers.Messages{
 		Total:    uint64(len(ret)),
-		Offset:   0,
-		Limit:    0,
 		Messages: ret,
 	}, nil
 }
@@ -183,11 +164,15 @@ func (repo *InfluxRepository) GetMessageByPublisher(chanID string, offset, limit
 	condition := fmtConditionByChanIDs([]string{chanID}, query)
 
 	cmd := fmt.Sprintf(`SELECT %s("value") as value, last("unit") as unit FROM %s WHERE %s GROUP BY time(%s), "name"`, aggregationType, measurement, condition, interval)
-	//todo
-	fmt.Println("cmd = " + cmd)
+	log.Println("cmd = " + cmd)
 	q := influxdata.Query{
 		Command:  cmd,
 		Database: repo.database,
+	}
+
+	total, err := repo.count(measurement, condition)
+	if err != nil {
+		return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
 	}
 
 	var ret []readers.Message
@@ -209,10 +194,10 @@ func (repo *InfluxRepository) GetMessageByPublisher(chanID string, offset, limit
 		ret = append(ret, parseMessageByFieldsAndTags(result.Tags, result.Columns, v))
 	}
 
-	total, err := repo.count(measurement, condition)
-	if err != nil {
-		return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
-	}
+	//total, err := repo.count(measurement, condition)
+	//if err != nil {
+	//	return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
+	//}
 
 	return readers.MessagesPage{
 		Total:    total,
@@ -232,12 +217,15 @@ func (repo *InfluxRepository) ReadAll(chanID string, offset, limit uint64, query
 	condition := fmtConditionByChanIDs([]string{chanID}, query)
 
 	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE %s ORDER BY time DESC LIMIT %d OFFSET %d`, measurement, condition, limit, offset)
-	log.Println("read all cmd = ", cmd)
+	log.Println("cmd = ", cmd)
 	q := influxdata.Query{
 		Command:  cmd,
 		Database: repo.database,
 	}
-	fmt.Println("database = " + repo.database)
+	total, err := repo.count(measurement, condition)
+	if err != nil {
+		return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
+	}
 
 	var ret []readers.Message
 
@@ -256,13 +244,12 @@ func (repo *InfluxRepository) ReadAll(chanID string, offset, limit uint64, query
 	result := resp.Results[0].Series[0]
 	for _, v := range result.Values {
 		ret = append(ret, parseMessageByFieldsAndTags(result.Tags, result.Columns, v))
-		//ret = append(ret, parseMessage(measurement, result.Columns, v))
 	}
 
-	total, err := repo.count(measurement, condition)
-	if err != nil {
-		return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
-	}
+	//total, err := repo.count(measurement, condition)
+	//if err != nil {
+	//	return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
+	//}
 
 	return readers.MessagesPage{
 		Total:    total,
@@ -315,11 +302,21 @@ func (repo *InfluxRepository) count(measurement, condition string) (uint64, erro
 }
 func fmtConditionByChanIDs(chanIDs []string, query map[string]string) string {
 	condition := ""
+	if query["from"] != "" {
+		condition = fmt.Sprintf(`time >= '%s'`, query["from"])
+	}
+	if query["from"] != "" && query["to"] != "" {
+		condition = fmt.Sprintf(`%s AND `, condition)
+	}
+	if query["to"] != "" {
+		condition = fmt.Sprintf(`%s time < '%s' AND `, condition, query["to"])
+	}
+
 	if len(chanIDs) > 0 {
-		condition = "("
+		condition = fmt.Sprintf(`%s ( `, condition)
 	}
 	for i := range chanIDs {
-		if condition == "(" {
+		if i == 0 {
 			condition = fmt.Sprintf(`%s channel='%s'`, condition, chanIDs[i])
 		} else {
 			condition = fmt.Sprintf(`%s OR channel ='%s'`, condition, chanIDs[i])
@@ -328,7 +325,6 @@ func fmtConditionByChanIDs(chanIDs []string, query map[string]string) string {
 	if len(chanIDs) > 0 {
 		condition = fmt.Sprintf(`%s %s`, condition, ")")
 	}
-	//condition := fmt.Sprintf(`channel='%s'`, chanID)
 	for name, value := range query {
 		switch name {
 		case "name":
@@ -347,7 +343,6 @@ func fmtConditionByChanIDs(chanIDs []string, query map[string]string) string {
 			"channel",
 			"subtopic",
 			"publisher",
-			//"name",
 			"protocol":
 			condition = fmt.Sprintf(`%s AND "%s"='%s'`, condition, name, value)
 		case "v":
@@ -358,31 +353,8 @@ func fmtConditionByChanIDs(chanIDs []string, query map[string]string) string {
 			condition = fmt.Sprintf(`%s AND stringValue = '%s'`, condition, value)
 		case "vd":
 			condition = fmt.Sprintf(`%s AND dataValue = '%s'`, condition, value)
-		case "from":
-			//timeTemplate1 := "2006-01-02T15:04:05Z"
-			//stamp, _ := time.ParseInLocation(timeTemplate1, value, time.Local) //使用parseInLocation将字符串格式化返回本地时区时间
-			//fmt.Println("***********时间from :", value)
-			//fVal, err := strconv.ParseFloat(value, 64)
-			//if err != nil {
-			//	fmt.Println("error")
-			//	continue
-			//}
-			//iVal := int64(fVal * 1e9)
-			condition = fmt.Sprintf(`%s AND time >= '%s'`, condition, value)
-		case "to":
-			//fmt.Println("***********时间to :", value)
-			//timeTemplate1 := "2006-01-02T15:04:05Z"
-			//stamp, _ := time.ParseInLocation(timeTemplate1, value, time.Local) //使用parseInLocation将字符串格式化返回本地时区时间
-			//fVal, err := strconv.ParseFloat(value, 64)
-			//if err != nil {
-			//	fmt.Println("error")
-			//	continue
-			//}
-			//iVal := int64(fVal * 1e9)
-			condition = fmt.Sprintf(`%s AND time < '%s'`, condition, value)
 		}
 	}
-	//fmt.Println("condition:",condition)
 	return condition
 }
 func fmtCondition(chanID string, query map[string]string) string {

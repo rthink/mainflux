@@ -30,6 +30,18 @@ type postgresRepository struct {
 	db *sqlx.DB
 }
 
+func (tr postgresRepository) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.Messages, error) {
+	panic("implement me")
+}
+
+func (tr postgresRepository) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.Messages, error) {
+	panic("implement me")
+}
+
+func (tr postgresRepository) GetMessageByPublisher(chanID string, offset, limit uint64, aggregationType string, interval string, query map[string]string) (readers.MessagesPage, error) {
+	panic("implement me")
+}
+
 // New returns new PostgreSQL writer.
 func New(db *sqlx.DB) readers.MessageRepository {
 	return &postgresRepository{

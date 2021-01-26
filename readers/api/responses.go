@@ -22,6 +22,10 @@ type pageRes struct {
 	Limit    uint64            `json:"limit"`
 	Messages []readers.Message `json:"messages,omitempty"`
 }
+type res struct {
+	Total    uint64            `json:"total"`
+	Messages []readers.Message `json:"messages,omitempty"`
+}
 
 func (res pageRes) Headers() map[string]string {
 	var ret map[string]string = make(map[string]string)
@@ -39,11 +43,9 @@ func (res pageRes) Headers() map[string]string {
 func temp(msg interface{}) string {
 	message, ok := msg.(senml.Message)
 	if ok == false {
-		//fmt.Println("temp func : error")
 		return "error"
 	}
 	jsonstr, _ := json.MarshalIndent(message, "", "	")
-	//fmt.Println("responses:message = " , message)
 	fmt.Println("responses:jsonstr = " + string(jsonstr))
 	return string(jsonstr)
 }
@@ -58,4 +60,24 @@ func (res pageRes) Empty() bool {
 
 type errorRes struct {
 	Err string `json:"error"`
+}
+
+func (res res) Headers() map[string]string {
+	var ret map[string]string = make(map[string]string)
+	ret["total"] = strconv.FormatUint(res.Total, 10)
+
+	str := ""
+	for i := range res.Messages {
+		str = str + "\n" + temp(res.Messages[i])
+	}
+	ret["messages"] = str
+	return ret
+}
+
+func (res res) Code() int {
+	return http.StatusOK
+}
+
+func (res res) Empty() bool {
+	return false
 }

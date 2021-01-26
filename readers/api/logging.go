@@ -20,11 +20,11 @@ type loggingMiddleware struct {
 	svc    readers.MessageRepository
 }
 
-func (lm *loggingMiddleware) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+func (lm *loggingMiddleware) GetLastMeasurement(chanIDs []string, query map[string]string) (readers.Messages, error) {
 	panic("implement me")
 }
 
-func (lm *loggingMiddleware) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.MessagesPage, error) {
+func (lm *loggingMiddleware) PumpRunningSeconds(chanIDs []string, query map[string]string) (readers.Messages, error) {
 	panic("implement me")
 }
 
