@@ -4,13 +4,10 @@
 package api
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/mainflux/mainflux"
-	"github.com/mainflux/mainflux/pkg/transformers/senml"
 	"github.com/mainflux/mainflux/readers"
 )
 
@@ -33,21 +30,13 @@ func (res pageRes) Headers() map[string]string {
 	ret["offset"] = strconv.FormatUint(res.Offset, 10)
 	ret["total"] = strconv.FormatUint(res.Total, 10)
 
-	str := ""
-	for i := range res.Messages {
-		str = str + "\n" + temp(res.Messages[i])
-	}
-	ret["messages"] = str
+	//jsonStr, err := json.MarshalIndent(res.Messages, "", "	")
+	//if err != nil {
+	//	ret["messages"] = "error"
+	//} else {
+	//	ret["messages"] = string(jsonStr)
+	//}
 	return ret
-}
-func temp(msg interface{}) string {
-	message, ok := msg.(senml.Message)
-	if ok == false {
-		return "error"
-	}
-	jsonstr, _ := json.MarshalIndent(message, "", "	")
-	fmt.Println("responses:jsonstr = " + string(jsonstr))
-	return string(jsonstr)
 }
 
 func (res pageRes) Code() int {
@@ -66,11 +55,12 @@ func (res res) Headers() map[string]string {
 	var ret map[string]string = make(map[string]string)
 	ret["total"] = strconv.FormatUint(res.Total, 10)
 
-	str := ""
-	for i := range res.Messages {
-		str = str + "\n" + temp(res.Messages[i])
-	}
-	ret["messages"] = str
+	//jsonStr, err := json.MarshalIndent(res.Messages, "", "	")
+	//if err != nil {
+	//	ret["messages"] = "error"
+	//} else {
+	//	ret["messages"] = string(jsonStr)
+	//}
 	return ret
 }
 

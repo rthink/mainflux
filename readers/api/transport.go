@@ -37,6 +37,12 @@ var (
 	queryFields           = []string{"format", "subtopic", "publisher", "protocol", "name", "v", "vs", "vb", "vd", "from", "to"}
 )
 
+type resMessage struct {
+	messages   map[string]interface{}
+	statusCode uint64
+	desc       string
+}
+
 // MakeHandler returns a HTTP handler for API endpoints.
 func MakeHandler(svc readers.MessageRepository, tc mainflux.ThingsServiceClient, svcName string) http.Handler {
 	auth = tc
@@ -228,10 +234,26 @@ func decodeLast(_ context.Context, r *http.Request) (interface{}, error) {
 func encodeResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
 	w.Header().Set("Content-Type", contentType)
 	if ar, ok := response.(mainflux.Response); ok {
-		for k, v := range ar.Headers() {
-			w.Header().Add(k, v)
-		}
+		//messages := map[string]interface{}{}
+		//for k, v := range ar.Headers() {
+		//	//w.Header().Add(k, v)
+		//	//messages[k] = v
+		//	//log.Println("k:" + k + " v:" + v)
+		//}
+		//s := messages["messages"].(string)
+		//var data []byte = []byte(s)
+		//var arr []senml.Message
+		//err := json.Unmarshal(data, &arr)
+		//if err != nil {
+		//	return err
+		//}
+		//messages["messages"] = arr
+		//marshal, _ := json.MarshalIndent(resMessage{
+		//	messages: messages,
+		//}, "", "	")
 		w.WriteHeader(ar.Code())
+		//log.Println("marshal : "+string(marshal[:]))
+		//w.Write([]byte{})
 		if ar.Empty() {
 			return nil
 		}

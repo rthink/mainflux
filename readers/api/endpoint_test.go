@@ -98,6 +98,10 @@ func TestGetLastMeasurement(t *testing.T) {
 	tc := mocks.NewThingsService()
 	ts := newServer(svc, tc)
 	defer ts.Close()
+	//fmt.Println(ts.URL)
+	//for ;true; {
+	//
+	//}
 
 	cases := []struct {
 		url   string
@@ -148,6 +152,12 @@ func TestGetLastMeasurement(t *testing.T) {
 		log.Println("Status : ", do.Status)
 		msg := do.Header.Get("messages")
 		log.Println("msg = " + msg)
+		temp := make([]byte, 10240)
+		//temp := []byte{}//这种声明定义  切片的大小为0 不能用于read读取数据
+		do.Body.Read(temp)
+
+		log.Println("temp :" + string(temp))
+		do.Body.Close()
 	}
 }
 
@@ -214,6 +224,12 @@ func TestPumpRunningSeconds(t *testing.T) {
 		log.Println("Status : ", do.Status)
 		msg := do.Header.Get("messages")
 		log.Println("msg = " + msg)
+		temp := make([]byte, 10240)
+		//temp := []byte{}//这种声明定义  切片的大小为0 不能用于read读取数据
+		do.Body.Read(temp)
+
+		log.Println("temp :" + string(temp))
+		do.Body.Close()
 	}
 }
 
@@ -281,6 +297,12 @@ func TestGetMessageByPublisher(t *testing.T) {
 		msg := do.Header.Get("messages")
 		fmt.Println("msg = " + msg)
 		//fmt.Println(do.)
+		temp := make([]byte, 300)
+		//temp := []byte{}//这种声明定义  切片的大小为0 不能用于read读取数据
+		do.Body.Read(temp)
+
+		log.Println("temp :" + string(temp))
+		do.Body.Close()
 	}
 }
 func TestReadAll(t *testing.T) {
