@@ -297,7 +297,7 @@ func TestGetMessageByPublisher(t *testing.T) {
 		msg := do.Header.Get("messages")
 		fmt.Println("msg = " + msg)
 		//fmt.Println(do.)
-		temp := make([]byte, 300)
+		temp := make([]byte, 10240)
 		//temp := []byte{}//这种声明定义  切片的大小为0 不能用于read读取数据
 		do.Body.Read(temp)
 

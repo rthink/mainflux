@@ -170,11 +170,6 @@ func (repo *InfluxRepository) GetMessageByPublisher(chanID string, offset, limit
 		Database: repo.database,
 	}
 
-	total, err := repo.count(measurement, condition)
-	if err != nil {
-		return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
-	}
-
 	var ret []readers.Message
 	//查询数据库
 	resp, err := repo.client.Query(q)
@@ -194,13 +189,8 @@ func (repo *InfluxRepository) GetMessageByPublisher(chanID string, offset, limit
 		ret = append(ret, parseMessageByFieldsAndTags(result.Tags, result.Columns, v))
 	}
 
-	//total, err := repo.count(measurement, condition)
-	//if err != nil {
-	//	return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
-	//}
-
 	return readers.MessagesPage{
-		Total:    total,
+		Total:    uint64(len(ret)),
 		Offset:   0,
 		Limit:    0,
 		Messages: ret,
